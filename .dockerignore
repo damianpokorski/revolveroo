@@ -1,0 +1,10 @@
+node_modules
+.git
+.svelte-kit
+apps/web/.svelte-kit
+apps/server/dist
+packages/db/dist
+local.db
+.env
+.env.*
+*.md

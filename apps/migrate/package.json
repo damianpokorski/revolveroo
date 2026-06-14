@@ -1,0 +1,19 @@
+{
+  "name": "@revolver/migrate",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "@revolver/db": "workspace:*",
+    "@revolver/env": "workspace:*",
+    "drizzle-orm": "^0.45.1",
+    "uuid": "^14.0.0"
+  },
+  "devDependencies": {
+    "@revolver/config": "workspace:*",
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

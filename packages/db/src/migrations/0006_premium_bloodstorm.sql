@@ -1,0 +1,1 @@
+ALTER TABLE `config` ADD `menu_style` text DEFAULT 'list' NOT NULL;

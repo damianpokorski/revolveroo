@@ -1,0 +1,1 @@
+ALTER TABLE `config` ADD `autoplay_enabled` integer DEFAULT true NOT NULL;

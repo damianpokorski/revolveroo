@@ -1,0 +1,114 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Pinned explicitly to match mise.toml / Dockerfile — packageManager in package.json
+      # is a secondary source of truth only, not read here directly.
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Cache Bun install cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('apps/web/package.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Self-hosted Nerd Font (binary release asset, not committed) — needed before both
+      # `build` (bundles it into the static output) and the e2e step (dev server serves
+      # it straight from apps/web/static/fonts/). Mirrors the Dockerfile's own ordering.
+      - name: Fetch self-hosted Nerd Font
+        run: bun run fonts:setup
+
+      - name: Type-check
+        run: bun run check-types
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Unit tests
+        run: bun run test
+
+      - name: Build
+        run: bun run build
+
+      # --with-deps installs the Ubuntu system libraries Chromium needs. The repo's own
+      # `test:e2e:install` script deliberately skips --with-deps (it also has to work in
+      # sandboxes without passwordless sudo); GitHub-hosted runners have full sudo, and a
+      # bare `playwright install` here would likely fail outright on a cold cache.
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
+        working-directory: apps/web
+
+      # Runs against a disposable, self-seeding SQLite file — apps/web/playwright.config.ts's
+      # webServer entries wipe/migrate/seed before listening, so no CI-specific DB setup
+      # is needed here.
+      - name: E2E / browser tests
+        run: bun run test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+      - name: Build Docker image
+        run: docker build -t revolver:ci .
+
+      - name: Docker smoke test
+        run: |
+          docker run -d --name revolver-ci -p 3000:3000 -v revolver-ci-data:/data revolver:ci
+
+          ready=false
+          for _ in $(seq 1 15); do
+            if curl -sf http://localhost:3000/api/health >/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "$ready" != "true" ]; then
+            echo "::error::Container never became healthy"
+            docker logs revolver-ci
+            exit 1
+          fi
+
+          echo "Container is healthy"
+
+      - name: Tear down smoke-test container
+        if: always()
+        run: |
+          docker rm -f revolver-ci 2>/dev/null || true
+          docker volume rm revolver-ci-data 2>/dev/null || true

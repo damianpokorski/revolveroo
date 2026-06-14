@@ -1,0 +1,76 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1781444784616,
+      "tag": "0000_minor_shadow_king",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1781637718254,
+      "tag": "0001_illegal_fantastic_four",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1781639378617,
+      "tag": "0002_cold_vision",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1782041149853,
+      "tag": "0003_steady_titanium_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1783105893733,
+      "tag": "0004_clever_human_torch",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1786971954973,
+      "tag": "0005_dear_shape",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1786975825424,
+      "tag": "0006_premium_bloodstorm",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1786986084997,
+      "tag": "0007_misty_shape",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1786993498336,
+      "tag": "0008_loud_midnight",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1787247168866,
+      "tag": "0009_add_default_tab_icons",
+      "breakpoints": true
+    }
+  ]
+}
