@@ -1,4 +1,4 @@
-import { config, db, runMigrations, tabs } from "@revolver/db";
+import { config, db, runMigrations, tabs, timeRanges } from "@revolver/db";
 import { v7 as uuidv7 } from "uuid";
 
 await runMigrations();
@@ -63,6 +63,31 @@ if (tabCount === 0) {
 		})),
 	);
 	console.log(`Seeded ${defaultTabs.length} tabs`);
+}
+
+// daysOfWeek follows JS Date#getDay(): 0 = Sunday ... 6 = Saturday.
+const defaultTimeRanges = [
+	{
+		name: "Weekdays",
+		startTime: "00:00",
+		endTime: "23:59",
+		daysOfWeek: [1, 2, 3, 4, 5],
+	},
+	{
+		name: "Weekdays (9–5)",
+		startTime: "09:00",
+		endTime: "17:00",
+		daysOfWeek: [1, 2, 3, 4, 5],
+	},
+	{ name: "Weekend", startTime: "00:00", endTime: "23:59", daysOfWeek: [0, 6] },
+];
+
+const timeRangesCount = await db.$count(timeRanges);
+if (timeRangesCount === 0) {
+	await db
+		.insert(timeRanges)
+		.values(defaultTimeRanges.map((tr) => ({ id: uuidv7(), ...tr })));
+	console.log(`Seeded ${defaultTimeRanges.length} time ranges`);
 }
 
 const configCount = await db.$count(config);
