@@ -35,7 +35,10 @@ test.describe("Kiosk root — playback controls", () => {
 		page,
 		request,
 	}) => {
-		await putConfig(request, { playbackInterval: 5000, autoplayEnabled: false });
+		await putConfig(request, {
+			playbackInterval: 5000,
+			autoplayEnabled: false,
+		});
 		await page.goto("/");
 
 		await page.getByTestId("hud-menu-toggle").click();
@@ -52,18 +55,25 @@ test.describe("Kiosk root — playback controls", () => {
 		await page.goto("/");
 
 		const tabs = await fetchTabs(request);
-		const activeBefore = await page.locator('[data-testid="tab-pill"].active-pill').getAttribute("data-tab-id");
+		const activeBefore = await page
+			.locator('[data-testid="tab-pill"].active-pill')
+			.getAttribute("data-tab-id");
 		const target = tabs.find((t) => t.id !== activeBefore && !t.hiddenFromLoop);
-		if (!target) throw new Error("Expected another non-hidden seeded tab to switch to");
+		if (!target)
+			throw new Error("Expected another non-hidden seeded tab to switch to");
 
 		// Let progress build up close to the interval, then switch tabs manually.
 		await page.waitForTimeout(800);
-		await page.locator(`[data-testid="tab-pill"][data-tab-id="${target.id}"]`).click();
+		await page
+			.locator(`[data-testid="tab-pill"][data-tab-id="${target.id}"]`)
+			.click();
 
 		// The regression this guards: without a progress reset, the very next autoplay tick
 		// (well under 1000ms later) would immediately trip and switch away again.
 		await page.waitForTimeout(150);
-		const activeAfter = await page.locator('[data-testid="tab-pill"].active-pill').getAttribute("data-tab-id");
+		const activeAfter = await page
+			.locator('[data-testid="tab-pill"].active-pill')
+			.getAttribute("data-tab-id");
 		expect(activeAfter).toBe(target.id);
 	});
 });

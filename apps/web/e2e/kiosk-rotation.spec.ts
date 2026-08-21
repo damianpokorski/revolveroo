@@ -9,11 +9,16 @@ test.describe("Kiosk root — autoplay rotation", () => {
 		await putConfig(request, { playbackInterval: 5000, autoplayEnabled: true });
 	});
 
-	test("rotates tabs on the configured interval, skipping hidden ones", async ({ page, request }) => {
+	test("rotates tabs on the configured interval, skipping hidden ones", async ({
+		page,
+		request,
+	}) => {
 		await putConfig(request, { playbackInterval: 1000, autoplayEnabled: true });
 
 		const tabs = await fetchTabs(request);
-		const hiddenIds = new Set(tabs.filter((t) => HIDDEN_TAB_TITLES.includes(t.title)).map((t) => t.id));
+		const hiddenIds = new Set(
+			tabs.filter((t) => HIDDEN_TAB_TITLES.includes(t.title)).map((t) => t.id),
+		);
 
 		await page.goto("/");
 		const activePill = page.locator('[data-testid="tab-pill"].active-pill');
@@ -26,20 +31,30 @@ test.describe("Kiosk root — autoplay rotation", () => {
 		for (let i = 0; i < 8; i++) {
 			await page.waitForTimeout(800);
 			const currentId = await activePill.getAttribute("data-tab-id");
-			expect(currentId, "autoplay must never auto-select a hiddenFromLoop tab").not.toBeNull();
+			expect(
+				currentId,
+				"autoplay must never auto-select a hiddenFromLoop tab",
+			).not.toBeNull();
 			expect(hiddenIds.has(currentId as string)).toBe(false);
 			if (currentId !== initialTabId) sawChange = true;
 		}
-		expect(sawChange, "active tab should have advanced at least once").toBe(true);
+		expect(sawChange, "active tab should have advanced at least once").toBe(
+			true,
+		);
 	});
 
-	test("a hidden tab is still reachable by clicking its pill directly", async ({ page, request }) => {
+	test("a hidden tab is still reachable by clicking its pill directly", async ({
+		page,
+		request,
+	}) => {
 		const tabs = await fetchTabs(request);
 		const trello = tabs.find((t) => t.title === "Trello");
 		if (!trello) throw new Error("Seeded 'Trello' tab not found");
 
 		await page.goto("/");
-		const trelloPill = page.locator(`[data-testid="tab-pill"][data-tab-id="${trello.id}"]`);
+		const trelloPill = page.locator(
+			`[data-testid="tab-pill"][data-tab-id="${trello.id}"]`,
+		);
 		await trelloPill.click();
 		await expect(trelloPill).toHaveClass(/active-pill/);
 		await expect(

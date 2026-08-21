@@ -25,7 +25,10 @@ async function generateNerdFontData() {
 	if (!res.ok) {
 		throw new Error(`Failed to fetch glyphnames.json: ${res.status}`);
 	}
-	const raw = (await res.json()) as Record<string, { char: string; code: string }>;
+	const raw = (await res.json()) as Record<
+		string,
+		{ char: string; code: string }
+	>;
 
 	const icons: NerdFontIcon[] = Object.entries(raw)
 		.filter(([name]) => name !== "METADATA")
@@ -35,7 +38,10 @@ async function generateNerdFontData() {
 			set: name.split("-")[0],
 		}));
 
-	const outPath = join(import.meta.dir, "../static/icons/nerd-font-glyphnames.json");
+	const outPath = join(
+		import.meta.dir,
+		"../static/icons/nerd-font-glyphnames.json",
+	);
 	await writeFile(outPath, JSON.stringify(icons));
 	console.log(`Wrote ${icons.length} nerd font icons to ${outPath}`);
 }

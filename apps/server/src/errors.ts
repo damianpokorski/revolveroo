@@ -99,4 +99,9 @@ export const errorPlugin = new Elysia({ name: "error-plugin" })
 			set.status = error.status;
 			return { message: error.message };
 		}
+		// Unexpected (non-HttpError) failures: log the full error server-side, but
+		// don't leak internal details (driver errors, stack traces) to the client.
+		console.error(error);
+		set.status = 500;
+		return { message: "Internal Server Error" };
 	});

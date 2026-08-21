@@ -47,9 +47,6 @@ COPY --from=builder /app/apps/web/build ./public
 # Workspace package sources — Bun resolves @revolver/* through workspace symlinks
 COPY --from=builder /app/packages ./packages
 
-# SQL migration files consumed by the migrate package at startup
-COPY --from=builder /app/packages/db/src/migrations ./migrations
-
 # Migration runner source
 COPY --from=builder /app/apps/migrate ./apps/migrate
 

@@ -8,19 +8,19 @@ import { timeRangesController } from "./controllers/time-ranges";
 import { errorPlugin } from "./errors";
 
 export const router = new Elysia({ prefix: "/api" })
-  .use(errorPlugin)
-  .use(
-    openapi({
-      documentation: {
-        info: { title: "Revolver API", version: "1.0.0" },
-      },
-      mapJsonSchema: { zod: z.toJSONSchema },
-    }),
-  )
-  .get("/", () => "OK")
-  .get("/health", () => ({ status: "ok" }))
-  .use(configController)
-  .use(tabsController)
-  .use(timeRangesController)
-  .use(proxyController)
-  .use(proxySwRoute);
+	.use(errorPlugin)
+	.use(
+		openapi({
+			documentation: {
+				info: { title: "Revolver API", version: "1.0.0" },
+			},
+			mapJsonSchema: { zod: z.toJSONSchema },
+		}),
+	)
+	.get("/", () => "OK")
+	.get("/health", () => ({ status: "ok" }))
+	.use(configController)
+	.use(tabsController)
+	.use(timeRangesController)
+	.use(proxyController)
+	.use(proxySwRoute);

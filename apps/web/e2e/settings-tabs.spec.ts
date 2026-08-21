@@ -12,7 +12,9 @@ test.describe("Settings — tab CRUD", () => {
 
 		const row = page.getByTestId("tab-row").filter({ hasText: "E2E Test Tab" });
 		await expect(row).toBeVisible();
-		await expect(row.locator(".tab-meta")).toHaveText("https://example.com/e2e");
+		await expect(row.locator(".tab-meta")).toHaveText(
+			"https://example.com/e2e",
+		);
 
 		// Edit — verify persistence after reload, not just in-memory state
 		await row.getByTestId("edit-tab-btn").click();
@@ -20,12 +22,16 @@ test.describe("Settings — tab CRUD", () => {
 		await page.getByTestId("tab-save-btn").click();
 
 		await page.reload();
-		const editedRow = page.getByTestId("tab-row").filter({ hasText: "E2E Test Tab (edited)" });
+		const editedRow = page
+			.getByTestId("tab-row")
+			.filter({ hasText: "E2E Test Tab (edited)" });
 		await expect(editedRow).toBeVisible();
 
 		// Delete
 		page.once("dialog", (dialog) => dialog.accept());
 		await editedRow.getByTestId("delete-tab-btn").click();
-		await expect(page.getByTestId("tab-row").filter({ hasText: "E2E Test Tab" })).toHaveCount(0);
+		await expect(
+			page.getByTestId("tab-row").filter({ hasText: "E2E Test Tab" }),
+		).toHaveCount(0);
 	});
 });

@@ -1,14 +1,7 @@
-import { config, db, tabs } from "@revolver/db";
-import { migrate } from "drizzle-orm/libsql/migrator";
+import { config, db, runMigrations, tabs } from "@revolver/db";
 import { v7 as uuidv7 } from "uuid";
 
-console.log({
-	path: process.env.MIGRATIONS_FOLDER,
-	cwd: process.cwd(),
-});
-await migrate(db, {
-	migrationsFolder: process.env.MIGRATIONS_FOLDER ?? "migrations",
-});
+await runMigrations();
 console.log("Migrations complete");
 
 const defaultTabs = [

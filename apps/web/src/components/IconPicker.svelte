@@ -1,53 +1,64 @@
 <script lang="ts">
-  import { type EmojiIcon, loadEmojiIcons, loadNerdFontIcons, type NerdFontIcon } from "$lib/iconData";
+import {
+	type EmojiIcon,
+	loadEmojiIcons,
+	loadNerdFontIcons,
+	type NerdFontIcon,
+} from "$lib/iconData";
 
-  const MAX_RESULTS = 150;
+const MAX_RESULTS = 150;
 
-  let { value, onchange }: { value: string | null; onchange: (icon: string | null) => void } = $props();
+let {
+	value,
+	onchange,
+}: { value: string | null; onchange: (icon: string | null) => void } = $props();
 
-  let open = $state(false);
-  let query = $state("");
-  let category = $state<"nerdfont" | "emoji">("nerdfont");
-  let loading = $state(false);
-  let nerdFontData: NerdFontIcon[] | undefined = $state();
-  let emojiData: EmojiIcon[] | undefined = $state();
+let open = $state(false);
+let query = $state("");
+let category = $state<"nerdfont" | "emoji">("nerdfont");
+let loading = $state(false);
+let nerdFontData: NerdFontIcon[] | undefined = $state();
+let emojiData: EmojiIcon[] | undefined = $state();
 
-  $effect(() => {
-    if (!open || (nerdFontData && emojiData)) return;
-    loading = true;
-    Promise.all([loadNerdFontIcons(), loadEmojiIcons()])
-      .then(([nf, em]) => {
-        nerdFontData = nf;
-        emojiData = em;
-      })
-      .finally(() => {
-        loading = false;
-      });
-  });
+$effect(() => {
+	if (!open || (nerdFontData && emojiData)) return;
+	loading = true;
+	Promise.all([loadNerdFontIcons(), loadEmojiIcons()])
+		.then(([nf, em]) => {
+			nerdFontData = nf;
+			emojiData = em;
+		})
+		.finally(() => {
+			loading = false;
+		});
+});
 
-  let filtered = $derived.by(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    if (category === "nerdfont") {
-      return (nerdFontData ?? []).filter((icon) => icon.name.toLowerCase().includes(q)).slice(0, MAX_RESULTS);
-    }
-    return (emojiData ?? [])
-      .filter(
-        (icon) =>
-          icon.label.toLowerCase().includes(q) || icon.keywords.some((k) => k.toLowerCase().includes(q)),
-      )
-      .slice(0, MAX_RESULTS);
-  });
+let filtered = $derived.by(() => {
+	const q = query.trim().toLowerCase();
+	if (!q) return [];
+	if (category === "nerdfont") {
+		return (nerdFontData ?? [])
+			.filter((icon) => icon.name.toLowerCase().includes(q))
+			.slice(0, MAX_RESULTS);
+	}
+	return (emojiData ?? [])
+		.filter(
+			(icon) =>
+				icon.label.toLowerCase().includes(q) ||
+				icon.keywords.some((k) => k.toLowerCase().includes(q)),
+		)
+		.slice(0, MAX_RESULTS);
+});
 
-  function select(char: string) {
-    onchange(char);
-    open = false;
-    query = "";
-  }
+function select(char: string) {
+	onchange(char);
+	open = false;
+	query = "";
+}
 
-  function clear() {
-    onchange(null);
-  }
+function clear() {
+	onchange(null);
+}
 </script>
 
 <div class="icon-picker">

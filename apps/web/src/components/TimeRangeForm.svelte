@@ -1,19 +1,19 @@
 <script lang="ts">
-  export let label: string;
-  export let name = "";
-  export let startTime = "09:00";
-  export let endTime = "17:00";
-  export let selectedDays: number[] = [];
-  export let onsave: () => void;
-  export let oncancel: () => void;
+export let label: string;
+export let name = "";
+export let startTime = "09:00";
+export let endTime = "17:00";
+export let selectedDays: number[] = [];
+export let onsave: () => void;
+export let oncancel: () => void;
 
-  const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  function toggleDay(d: number) {
-    selectedDays = selectedDays.includes(d)
-      ? selectedDays.filter((x) => x !== d)
-      : [...selectedDays, d].sort();
-  }
+function toggleDay(d: number) {
+	selectedDays = selectedDays.includes(d)
+		? selectedDays.filter((x) => x !== d)
+		: [...selectedDays, d].sort();
+}
 </script>
 
 <p class="form-label">{label}</p>

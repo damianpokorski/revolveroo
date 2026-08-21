@@ -1,253 +1,286 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { type DndEvent, dragHandle, dragHandleZone } from "svelte-dnd-action";
-  import { createApi, type TabBody, type TabData, type TimeRangeBody, type TimeRangeData } from "$lib/api";
-  import type { EditCondition } from "$lib/types";
-  import TabForm from "../../components/TabForm.svelte";
-  import TimeRangeForm from "../../components/TimeRangeForm.svelte";
+import { onMount } from "svelte";
+import { type DndEvent, dragHandle, dragHandleZone } from "svelte-dnd-action";
+import {
+	createApi,
+	type TabBody,
+	type TabData,
+	type TimeRangeBody,
+	type TimeRangeData,
+} from "$lib/api";
+import {
+	applyTheme,
+	DEFAULT_THEME,
+	THEME_LABELS,
+	THEMES,
+	type Theme,
+} from "$lib/theme";
+import type { EditCondition } from "$lib/types";
+import TabForm from "../../components/TabForm.svelte";
+import TimeRangeForm from "../../components/TimeRangeForm.svelte";
 
-  const api = createApi();
+const api = createApi();
 
-  // --- Config ---
-  let configLoading = true;
-  let playbackInterval = 5000;
-  let autoplayEnabled = true;
-  let configSaved = false;
+// --- Config ---
+let configLoading = true;
+let playbackInterval = 5000;
+let autoplayEnabled = true;
+let theme: Theme = DEFAULT_THEME;
+let configSaved = false;
 
-  async function loadConfig() {
-    configLoading = true;
-    const { data, error } = await api.api.config.get();
-    if (!error) {
-      playbackInterval = data.playbackInterval;
-      autoplayEnabled = data.autoplayEnabled;
-    }
-    configLoading = false;
-  }
+async function loadConfig() {
+	configLoading = true;
+	const { data, error } = await api.api.config.get();
+	if (!error) {
+		playbackInterval = data.playbackInterval;
+		autoplayEnabled = data.autoplayEnabled;
+		theme = data.theme;
+		applyTheme(theme);
+	}
+	configLoading = false;
+}
 
-  async function saveConfig() {
-    const { error } = await api.api.config.put({ playbackInterval, autoplayEnabled });
-    if (error) {
-      console.error("Failed to save config", error);
-      return;
-    }
-    configSaved = true;
-    setTimeout(() => (configSaved = false), 2000);
-  }
+async function saveConfig() {
+	const { error } = await api.api.config.put({
+		playbackInterval,
+		autoplayEnabled,
+		theme,
+	});
+	if (error) {
+		console.error("Failed to save config", error);
+		return;
+	}
+	configSaved = true;
+	setTimeout(() => (configSaved = false), 2000);
+}
 
-  // --- Time Ranges ---
-  let timeRanges: TimeRangeData[] = [];
-  let timeRangesLoading = true;
-  let editingTimeRangeId: string | null = null;
-  let addingNewTimeRange = false;
+// --- Time Ranges ---
+let timeRanges: TimeRangeData[] = [];
+let timeRangesLoading = true;
+let editingTimeRangeId: string | null = null;
+let addingNewTimeRange = false;
 
-  let trName = "";
-  let trStart = "09:00";
-  let trEnd = "17:00";
-  let trDays: number[] = [];
+let trName = "";
+let trStart = "09:00";
+let trEnd = "17:00";
+let trDays: number[] = [];
 
-  async function loadTimeRanges() {
-    timeRangesLoading = true;
-    const { data, error } = await api.api["time-ranges"].get();
-    if (error) {
-      console.error("Failed to load time ranges", error);
-      timeRangesLoading = false;
-      return;
-    }
-    timeRanges = data;
-    timeRangesLoading = false;
-  }
+async function loadTimeRanges() {
+	timeRangesLoading = true;
+	const { data, error } = await api.api["time-ranges"].get();
+	if (error) {
+		console.error("Failed to load time ranges", error);
+		timeRangesLoading = false;
+		return;
+	}
+	timeRanges = data;
+	timeRangesLoading = false;
+}
 
-  function openEditTimeRange(tr: TimeRangeData) {
-    addingNewTimeRange = false;
-    editingTimeRangeId = tr.id;
-    trName = tr.name;
-    trStart = tr.startTime;
-    trEnd = tr.endTime;
-    trDays = tr.daysOfWeek ?? [];
-  }
+function openEditTimeRange(tr: TimeRangeData) {
+	addingNewTimeRange = false;
+	editingTimeRangeId = tr.id;
+	trName = tr.name;
+	trStart = tr.startTime;
+	trEnd = tr.endTime;
+	trDays = tr.daysOfWeek ?? [];
+}
 
-  function openAddTimeRange() {
-    editingTimeRangeId = null;
-    addingNewTimeRange = true;
-    trName = "";
-    trStart = "09:00";
-    trEnd = "17:00";
-    trDays = [];
-  }
+function openAddTimeRange() {
+	editingTimeRangeId = null;
+	addingNewTimeRange = true;
+	trName = "";
+	trStart = "09:00";
+	trEnd = "17:00";
+	trDays = [];
+}
 
-  function cancelTimeRange() {
-    editingTimeRangeId = null;
-    addingNewTimeRange = false;
-  }
+function cancelTimeRange() {
+	editingTimeRangeId = null;
+	addingNewTimeRange = false;
+}
 
-  function buildTimeRangeBody(): TimeRangeBody {
-    return { name: trName, startTime: trStart, endTime: trEnd, daysOfWeek: trDays.length ? trDays : null };
-  }
+function buildTimeRangeBody(): TimeRangeBody {
+	return {
+		name: trName,
+		startTime: trStart,
+		endTime: trEnd,
+		daysOfWeek: trDays.length ? trDays : null,
+	};
+}
 
-  async function saveTimeRange() {
-    const body = buildTimeRangeBody();
-    if (addingNewTimeRange) {
-      const { error } = await api.api["time-ranges"].post(body);
-      if (error) {
-        console.error(error);
-        return;
-      }
-    } else if (editingTimeRangeId !== null) {
-      const { error } = await api.api["time-ranges"]({ id: editingTimeRangeId }).put(body);
-      if (error) {
-        console.error(error);
-        return;
-      }
-    }
-    cancelTimeRange();
-    await loadTimeRanges();
-  }
+async function saveTimeRange() {
+	const body = buildTimeRangeBody();
+	if (addingNewTimeRange) {
+		const { error } = await api.api["time-ranges"].post(body);
+		if (error) {
+			console.error(error);
+			return;
+		}
+	} else if (editingTimeRangeId !== null) {
+		const { error } = await api.api["time-ranges"]({
+			id: editingTimeRangeId,
+		}).put(body);
+		if (error) {
+			console.error(error);
+			return;
+		}
+	}
+	cancelTimeRange();
+	await loadTimeRanges();
+}
 
-  async function removeTimeRange(id: string) {
-    if (!confirm("Delete this time range?")) return;
-    const { error } = await api.api["time-ranges"]({ id }).delete();
-    if (error) {
-      console.error(error);
-      return;
-    }
-    await loadTimeRanges();
-  }
+async function removeTimeRange(id: string) {
+	if (!confirm("Delete this time range?")) return;
+	const { error } = await api.api["time-ranges"]({ id }).delete();
+	if (error) {
+		console.error(error);
+		return;
+	}
+	await loadTimeRanges();
+}
 
-  // --- Tabs ---
-  let tabs: TabData[] = [];
-  let tabsLoading = true;
-  let editingId: string | null = null;
-  let addingNew = false;
+// --- Tabs ---
+let tabs: TabData[] = [];
+let tabsLoading = true;
+let editingId: string | null = null;
+let addingNew = false;
 
-  let fTitle = "";
-  let fUrl = "";
-  let fIcon: string | null = null;
-  let fHidden = false;
-  let fUseProxy = false;
-  let fConditions: EditCondition[] = [];
-  let fCustomDurationEnabled = false;
-  let fCustomDuration = 5000;
+let fTitle = "";
+let fUrl = "";
+let fIcon: string | null = null;
+let fHidden = false;
+let fUseProxy = false;
+let fConditions: EditCondition[] = [];
+let fCustomDurationEnabled = false;
+let fCustomDuration = 5000;
 
-  async function loadTabs() {
-    tabsLoading = true;
-    const { data, error } = await api.api.tabs.get();
-    if (error) {
-      console.error("Failed to load tabs", error);
-      tabsLoading = false;
-      return;
-    }
-    tabs = data;
-    tabsLoading = false;
-  }
+async function loadTabs() {
+	tabsLoading = true;
+	const { data, error } = await api.api.tabs.get();
+	if (error) {
+		console.error("Failed to load tabs", error);
+		tabsLoading = false;
+		return;
+	}
+	tabs = data;
+	tabsLoading = false;
+}
 
-  onMount(() => {
-    loadConfig();
-    loadTimeRanges();
-    loadTabs();
-  });
+onMount(() => {
+	loadConfig();
+	loadTimeRanges();
+	loadTabs();
+});
 
-  const dragDisabled = () => addingNew || editingId !== null;
+const dragDisabled = () => addingNew || editingId !== null;
 
-  function handleDndConsider(e: CustomEvent<DndEvent<TabData>>) {
-    tabs = e.detail.items;
-  }
+function handleDndConsider(e: CustomEvent<DndEvent<TabData>>) {
+	tabs = e.detail.items;
+}
 
-  async function handleDndFinalize(e: CustomEvent<DndEvent<TabData>>) {
-    tabs = e.detail.items;
-    const { error } = await api.api.tabs.reorder.patch({
-      ids: tabs.map((tab) => tab.id),
-    });
-    if (error) {
-      console.error("Failed to reorder tabs", error);
-      await loadTabs();
-    }
-  }
+async function handleDndFinalize(e: CustomEvent<DndEvent<TabData>>) {
+	tabs = e.detail.items;
+	const { error } = await api.api.tabs.reorder.patch({
+		ids: tabs.map((tab) => tab.id),
+	});
+	if (error) {
+		console.error("Failed to reorder tabs", error);
+		await loadTabs();
+	}
+}
 
-  function openEdit(tab: TabData) {
-    addingNew = false;
-    editingId = tab.id;
-    fTitle = tab.title;
-    fUrl = tab.url;
-    fIcon = tab.icon ?? null;
-    fHidden = tab.hiddenFromLoop ?? false;
-    fUseProxy = tab.useProxy ?? false;
-    fCustomDurationEnabled = tab.customDuration != null;
-    fCustomDuration = tab.customDuration ?? 5000;
-    fConditions = (tab.conditions ?? []).map((c): EditCondition =>
-      c.type === "timeRange"
-        ? { type: "timeRange", timeRangeIds: c.timeRangeIds }
-        : {
-            type: "queryParams",
-            pairs: Object.entries(c.queryParams).map(([key, value]) => ({ key, value })),
-          },
-    );
-  }
+function openEdit(tab: TabData) {
+	addingNew = false;
+	editingId = tab.id;
+	fTitle = tab.title;
+	fUrl = tab.url;
+	fIcon = tab.icon ?? null;
+	fHidden = tab.hiddenFromLoop ?? false;
+	fUseProxy = tab.useProxy ?? false;
+	fCustomDurationEnabled = tab.customDuration != null;
+	fCustomDuration = tab.customDuration ?? 5000;
+	fConditions = (tab.conditions ?? []).map(
+		(c): EditCondition =>
+			c.type === "timeRange"
+				? { type: "timeRange", timeRangeIds: c.timeRangeIds }
+				: {
+						type: "queryParams",
+						pairs: Object.entries(c.queryParams).map(([key, value]) => ({
+							key,
+							value,
+						})),
+					},
+	);
+}
 
-  function openAdd() {
-    editingId = null;
-    addingNew = true;
-    fTitle = "";
-    fUrl = "";
-    fIcon = null;
-    fHidden = false;
-    fUseProxy = false;
-    fConditions = [];
-    fCustomDurationEnabled = false;
-    fCustomDuration = 5000;
-  }
+function openAdd() {
+	editingId = null;
+	addingNew = true;
+	fTitle = "";
+	fUrl = "";
+	fIcon = null;
+	fHidden = false;
+	fUseProxy = false;
+	fConditions = [];
+	fCustomDurationEnabled = false;
+	fCustomDuration = 5000;
+}
 
-  function cancel() {
-    editingId = null;
-    addingNew = false;
-  }
+function cancel() {
+	editingId = null;
+	addingNew = false;
+}
 
-  function buildBody(): TabBody {
-    return {
-      title: fTitle,
-      url: fUrl,
-      icon: fIcon,
-      hiddenFromLoop: fHidden,
-      useProxy: fUseProxy,
-      conditions: fConditions.map((c) =>
-        c.type === "timeRange"
-          ? { type: "timeRange" as const, timeRangeIds: c.timeRangeIds }
-          : {
-              type: "queryParams" as const,
-              queryParams: Object.fromEntries(c.pairs.map((p) => [p.key, p.value])),
-            },
-      ),
-      customDuration: fCustomDurationEnabled ? fCustomDuration : null,
-    };
-  }
+function buildBody(): TabBody {
+	return {
+		title: fTitle,
+		url: fUrl,
+		icon: fIcon,
+		hiddenFromLoop: fHidden,
+		useProxy: fUseProxy,
+		conditions: fConditions.map((c) =>
+			c.type === "timeRange"
+				? { type: "timeRange" as const, timeRangeIds: c.timeRangeIds }
+				: {
+						type: "queryParams" as const,
+						queryParams: Object.fromEntries(
+							c.pairs.map((p) => [p.key, p.value]),
+						),
+					},
+		),
+		customDuration: fCustomDurationEnabled ? fCustomDuration : null,
+	};
+}
 
-  async function save() {
-    const body = buildBody();
-    if (addingNew) {
-      const { error } = await api.api.tabs.post(body);
-      if (error) {
-        console.error(error);
-        return;
-      }
-    } else if (editingId !== null) {
-      const { error } = await api.api.tabs({ id: editingId }).put(body);
-      if (error) {
-        console.error(error);
-        return;
-      }
-    }
-    cancel();
-    await loadTabs();
-  }
+async function save() {
+	const body = buildBody();
+	if (addingNew) {
+		const { error } = await api.api.tabs.post(body);
+		if (error) {
+			console.error(error);
+			return;
+		}
+	} else if (editingId !== null) {
+		const { error } = await api.api.tabs({ id: editingId }).put(body);
+		if (error) {
+			console.error(error);
+			return;
+		}
+	}
+	cancel();
+	await loadTabs();
+}
 
-  async function remove(id: string) {
-    if (!confirm("Delete this tab?")) return;
-    const { error } = await api.api.tabs({ id }).delete();
-    if (error) {
-      console.error(error);
-      return;
-    }
-    await loadTabs();
-  }
+async function remove(id: string) {
+	if (!confirm("Delete this tab?")) return;
+	const { error } = await api.api.tabs({ id }).delete();
+	if (error) {
+		console.error(error);
+		return;
+	}
+	await loadTabs();
+}
 </script>
 
 <div class="page">
@@ -277,6 +310,14 @@
             step="500"
             disabled={!autoplayEnabled}
           />
+        </label>
+        <label>
+          Theme
+          <select bind:value={theme} data-testid="theme-select" on:change={() => applyTheme(theme)}>
+            {#each THEMES as t}
+              <option value={t}>{THEME_LABELS[t]}</option>
+            {/each}
+          </select>
         </label>
       </div>
       <div class="row-actions">
@@ -662,6 +703,16 @@
   }
   input[type="range"]:disabled {
     opacity: 0.4;
+  }
+
+  select {
+    background: var(--ctp-surface0);
+    color: var(--ctp-text);
+    border: 1px solid var(--ctp-surface1);
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.9rem;
+    cursor: pointer;
   }
 
   label.checkbox-row {

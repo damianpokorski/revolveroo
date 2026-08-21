@@ -8,12 +8,17 @@ export interface SeededTab {
 	hiddenFromLoop: boolean;
 }
 
-export async function fetchTabs(request: APIRequestContext): Promise<SeededTab[]> {
+export async function fetchTabs(
+	request: APIRequestContext,
+): Promise<SeededTab[]> {
 	const res = await request.get(`${API_BASE}/tabs`);
 	return res.json();
 }
 
-export async function fetchTabByTitle(request: APIRequestContext, title: string): Promise<SeededTab> {
+export async function fetchTabByTitle(
+	request: APIRequestContext,
+	title: string,
+): Promise<SeededTab> {
 	const tabs = await fetchTabs(request);
 	const tab = tabs.find((t) => t.title === title);
 	if (!tab) throw new Error(`No seeded tab titled "${title}"`);

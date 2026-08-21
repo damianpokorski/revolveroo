@@ -11,7 +11,10 @@ import { unzipSync } from "fflate";
 const NERD_FONTS_VERSION = "v3.5.0";
 const RELEASE_ZIP_URL = `https://github.com/ryanoasis/nerd-fonts/releases/download/${NERD_FONTS_VERSION}/NerdFontsSymbolsOnly.zip`;
 const TTF_ENTRY_NAME = "SymbolsNerdFontMono-Regular.ttf";
-const OUT_PATH = join(import.meta.dir, "../static/fonts/SymbolsNerdFontMono-Regular.woff2");
+const OUT_PATH = join(
+	import.meta.dir,
+	"../static/fonts/SymbolsNerdFontMono-Regular.woff2",
+);
 
 async function main() {
 	if (existsSync(OUT_PATH)) {

@@ -1,48 +1,60 @@
 <script lang="ts">
-  import type { TimeRangeData } from "$lib/api";
-  import type { EditCondition } from "$lib/types";
+import type { TimeRangeData } from "$lib/api";
+import type { EditCondition } from "$lib/types";
 
-  export let conditions: EditCondition[];
-  export let timeRanges: TimeRangeData[] = [];
+export let conditions: EditCondition[];
+export let timeRanges: TimeRangeData[] = [];
 
-  function addQueryParamCondition() {
-    conditions = [...conditions, { type: "queryParams", pairs: [{ key: "", value: "" }] }];
-  }
-  function addTimeRangeCondition() {
-    conditions = [...conditions, { type: "timeRange", timeRangeIds: [] }];
-  }
-  function removeCondition(ci: number) {
-    conditions = conditions.filter((_, i) => i !== ci);
-  }
-  function addPair(ci: number) {
-    conditions = conditions.map((c, i) =>
-      i === ci && c.type === "queryParams" ? { ...c, pairs: [...c.pairs, { key: "", value: "" }] } : c,
-    );
-  }
-  function removePair(ci: number, pi: number) {
-    conditions = conditions.map((c, i) =>
-      i === ci && c.type === "queryParams" ? { ...c, pairs: c.pairs.filter((_, j) => j !== pi) } : c,
-    );
-  }
-  function addTimeRangeRow(ci: number) {
-    conditions = conditions.map((c, i) =>
-      i === ci && c.type === "timeRange" ? { ...c, timeRangeIds: [...c.timeRangeIds, ""] } : c,
-    );
-  }
-  function removeTimeRangeRow(ci: number, ri: number) {
-    conditions = conditions.map((c, i) =>
-      i === ci && c.type === "timeRange"
-        ? { ...c, timeRangeIds: c.timeRangeIds.filter((_, j) => j !== ri) }
-        : c,
-    );
-  }
-  function setTimeRangeRow(ci: number, ri: number, id: string) {
-    conditions = conditions.map((c, i) =>
-      i === ci && c.type === "timeRange"
-        ? { ...c, timeRangeIds: c.timeRangeIds.map((v, j) => (j === ri ? id : v)) }
-        : c,
-    );
-  }
+function addQueryParamCondition() {
+	conditions = [
+		...conditions,
+		{ type: "queryParams", pairs: [{ key: "", value: "" }] },
+	];
+}
+function addTimeRangeCondition() {
+	conditions = [...conditions, { type: "timeRange", timeRangeIds: [] }];
+}
+function removeCondition(ci: number) {
+	conditions = conditions.filter((_, i) => i !== ci);
+}
+function addPair(ci: number) {
+	conditions = conditions.map((c, i) =>
+		i === ci && c.type === "queryParams"
+			? { ...c, pairs: [...c.pairs, { key: "", value: "" }] }
+			: c,
+	);
+}
+function removePair(ci: number, pi: number) {
+	conditions = conditions.map((c, i) =>
+		i === ci && c.type === "queryParams"
+			? { ...c, pairs: c.pairs.filter((_, j) => j !== pi) }
+			: c,
+	);
+}
+function addTimeRangeRow(ci: number) {
+	conditions = conditions.map((c, i) =>
+		i === ci && c.type === "timeRange"
+			? { ...c, timeRangeIds: [...c.timeRangeIds, ""] }
+			: c,
+	);
+}
+function removeTimeRangeRow(ci: number, ri: number) {
+	conditions = conditions.map((c, i) =>
+		i === ci && c.type === "timeRange"
+			? { ...c, timeRangeIds: c.timeRangeIds.filter((_, j) => j !== ri) }
+			: c,
+	);
+}
+function setTimeRangeRow(ci: number, ri: number, id: string) {
+	conditions = conditions.map((c, i) =>
+		i === ci && c.type === "timeRange"
+			? {
+					...c,
+					timeRangeIds: c.timeRangeIds.map((v, j) => (j === ri ? id : v)),
+				}
+			: c,
+	);
+}
 </script>
 
 <div class="conditions-section">

@@ -1,5 +1,5 @@
-import { v7 as uuidv7 } from "uuid";
 import type { TabCondition } from "@revolver/db";
+import { v7 as uuidv7 } from "uuid";
 import type { Tab, TabsRepository } from "../db/TabsRepository";
 import { BadRequestError, NotFoundError } from "../errors";
 
@@ -14,7 +14,9 @@ export interface TabBody {
 }
 
 // Legacy rows created before condition types existed only have `{ queryParams }`.
-const normalizeCondition = (c: TabCondition | { queryParams: Record<string, string> }): TabCondition =>
+const normalizeCondition = (
+	c: TabCondition | { queryParams: Record<string, string> },
+): TabCondition =>
 	"type" in c ? c : { type: "queryParams", queryParams: c.queryParams };
 
 const toApiTab = ({ position: _, ...tab }: Tab) => ({

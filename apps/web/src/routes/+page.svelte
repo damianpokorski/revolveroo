@@ -1,87 +1,92 @@
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
-  import { createApi } from "$lib/api";
-  import { iframeSrc, type Tab, toTab } from "$lib/tabs";
+import { onDestroy, onMount } from "svelte";
+import { createApi } from "$lib/api";
+import { iframeSrc, type Tab, toTab } from "$lib/tabs";
+import { applyTheme } from "$lib/theme";
 
-  // Fetch tabs from API, reconstruct conditions, then filter
-  let tabs: Tab[] = [];
-  onMount(async () => {
-    const api = createApi();
-    const [tabsResult, configResult, timeRangesResult] = await Promise.all([
-      api.api.tabs.get(),
-      api.api.config.get(),
-      api.api["time-ranges"].get(),
-    ]);
-    if (tabsResult.error) {
-      console.error("Failed to load tabs", tabsResult.error);
-      return;
-    }
-    const timeRangesById = new Map(
-      (timeRangesResult.error ? [] : timeRangesResult.data).map((tr) => [tr.id, tr]),
-    );
-    tabs = tabsResult.data
-      .map((d) => toTab(d, timeRangesById))
-      .filter((tab) => tab.conditions?.every((c) => c.evaluator()) ?? true);
-    if (!configResult.error) {
-      playbackInterval = configResult.data.playbackInterval;
-      autoplayEnabled = configResult.data.autoplayEnabled;
-    }
-  });
+// Fetch tabs from API, reconstruct conditions, then filter
+let tabs: Tab[] = [];
+onMount(async () => {
+	const api = createApi();
+	const [tabsResult, configResult, timeRangesResult] = await Promise.all([
+		api.api.tabs.get(),
+		api.api.config.get(),
+		api.api["time-ranges"].get(),
+	]);
+	if (tabsResult.error) {
+		console.error("Failed to load tabs", tabsResult.error);
+		return;
+	}
+	const timeRangesById = new Map(
+		(timeRangesResult.error ? [] : timeRangesResult.data).map((tr) => [
+			tr.id,
+			tr,
+		]),
+	);
+	tabs = tabsResult.data
+		.map((d) => toTab(d, timeRangesById))
+		.filter((tab) => tab.conditions?.every((c) => c.evaluator()) ?? true);
+	if (!configResult.error) {
+		playbackInterval = configResult.data.playbackInterval;
+		autoplayEnabled = configResult.data.autoplayEnabled;
+		applyTheme(configResult.data.theme);
+	}
+});
 
-  // --- Config ---
-  let playbackInterval = 5000;
-  let autoplayEnabled = true;
+// --- Config ---
+let playbackInterval = 5000;
+let autoplayEnabled = true;
 
-  // --- UI state ---
-  let menu = false;
-  // Session-only pause/resume, only meaningful (and only surfaced in the menu) when
-  // autoplay is enabled in settings.
-  let autoplayRunning = true;
-  let activeTabIndex = 0;
-  let progressPercentage = 0;
-  // True while the just-selected tab is running its one-time grace cycle
-  // instead of its normal rotation interval.
-  let graceActive = false;
+// --- UI state ---
+let menu = false;
+// Session-only pause/resume, only meaningful (and only surfaced in the menu) when
+// autoplay is enabled in settings.
+let autoplayRunning = true;
+let activeTabIndex = 0;
+let progressPercentage = 0;
+// True while the just-selected tab is running its one-time grace cycle
+// instead of its normal rotation interval.
+let graceActive = false;
 
-  // --- Autoplay loop ---
-  const FRAME = 1000 / 120;
-  const GRACE_PERIOD_MS = 8000;
-  let progress = 0;
-  let handle: ReturnType<typeof setInterval>;
+// --- Autoplay loop ---
+const FRAME = 1000 / 120;
+const GRACE_PERIOD_MS = 8000;
+let progress = 0;
+let handle: ReturnType<typeof setInterval>;
 
-  onMount(() => {
-    handle = setInterval(() => {
-      if (menu || !autoplayEnabled || !autoplayRunning) return;
-      progress += FRAME;
-      // Grace fully replaces (doesn't extend) the tab's normal interval for one cycle.
-      const effectiveInterval = graceActive
-        ? GRACE_PERIOD_MS
-        : (tabs[activeTabIndex]?.customDuration ?? playbackInterval);
-      progressPercentage = progress / effectiveInterval;
-      if (progress < effectiveInterval) return;
-      progress = 0;
-      graceActive = false;
-      let next = (activeTabIndex + 1) % tabs.length;
-      while (tabs[next]?.hiddenFromLoop) next = (next + 1) % tabs.length;
-      activeTabIndex = next;
-    }, FRAME);
-  });
+onMount(() => {
+	handle = setInterval(() => {
+		if (menu || !autoplayEnabled || !autoplayRunning) return;
+		progress += FRAME;
+		// Grace fully replaces (doesn't extend) the tab's normal interval for one cycle.
+		const effectiveInterval = graceActive
+			? GRACE_PERIOD_MS
+			: (tabs[activeTabIndex]?.customDuration ?? playbackInterval);
+		progressPercentage = progress / effectiveInterval;
+		if (progress < effectiveInterval) return;
+		progress = 0;
+		graceActive = false;
+		let next = (activeTabIndex + 1) % tabs.length;
+		while (tabs[next]?.hiddenFromLoop) next = (next + 1) % tabs.length;
+		activeTabIndex = next;
+	}, FRAME);
+});
 
-  onDestroy(() => clearInterval(handle));
+onDestroy(() => clearInterval(handle));
 
-  // Reset the autoplay timer whenever a tab is picked manually, so leftover
-  // progress from the previous tab can't immediately trip the next switch.
-  // Also starts a fresh grace cycle — even re-clicking the already-active tab
-  // restarts grace, since there's no reason to special-case that.
-  const selectTab = (i: number) => {
-    activeTabIndex = i;
-    progress = 0;
-    progressPercentage = 0;
-    graceActive = true;
-  };
+// Reset the autoplay timer whenever a tab is picked manually, so leftover
+// progress from the previous tab can't immediately trip the next switch.
+// Also starts a fresh grace cycle — even re-clicking the already-active tab
+// restarts grace, since there's no reason to special-case that.
+const selectTab = (i: number) => {
+	activeTabIndex = i;
+	progress = 0;
+	progressPercentage = 0;
+	graceActive = true;
+};
 
-  // Fallback glyph (Nerd Font "fa-question") for pills when a tab has no icon set
-  const QUESTION_MARK_ICON = "";
+// Fallback glyph (Nerd Font "fa-question") for pills when a tab has no icon set
+const QUESTION_MARK_ICON = "";
 </script>
 
 <div class="wrapper">

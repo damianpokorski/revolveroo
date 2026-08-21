@@ -25,17 +25,20 @@ A self-hosted kiosk app that cycles through your internal dashboards on tablets,
 # 1. Install dependencies
 bun install
 
-# 2. Create the database
-bun run db:push
-
-# 3. Fetch the self-hosted Nerd Font used by the tab icon picker (one-time)
+# 2. Fetch the self-hosted Nerd Font used by the tab icon picker (one-time)
 bun run fonts:setup
 
-# 4. Start the dev server
+# 3. Start the dev server
 bun run dev
 ```
 
-The web UI is at `http://localhost:5173` and the API at `http://localhost:3000`.
+The database is created and migrated automatically on first boot — no separate setup step needed. The web UI is at `http://localhost:5173` and the API at `http://localhost:3000`.
+
+### Updating an existing local database
+
+Local dev and production both apply schema changes through the same Drizzle migration flow, so after pulling code that touches `packages/db/src/schema/`, just restart `bun run dev` — pending migrations are applied automatically before the server starts serving requests.
+
+If your local database predates this (it was originally set up with `bun run db:push`, which doesn't record migration history), it won't be picked up by that automatic step — re-run `bun run db:push` to sync it manually instead. The server logs a clear message telling you to do this if it detects the mismatch. Deleting that database file and letting `bun run dev` recreate it from scratch is the easiest way to fully switch over.
 
 ---
 

@@ -36,7 +36,7 @@
 		"db:migrate": "vp run --filter @revolver/db db:migrate",
 		"db:local": "vp run --filter @revolver/db db:local",
 		"migrate": "vp run --filter @revolver/migrate start",
-		"dev:migrate": "MIGRATIONS_FOLDER=./../../packages/db/src/migrations bun run migrate",
+		"dev:migrate": "bun run migrate",
 		"docker:stop": "(docker stop revolver  2&> /dev/null || echo 'No containers needing stopping') && (docker rm -f revolver 2&> /dev/null || echo 'No old containers to remove') ",
 		"docker": "docker buildx build -t revolver . && bun run docker:stop && docker run -it --name revolver -p 3000:3000 -v revolver-data:/data revolver"
 	},

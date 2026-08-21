@@ -18,7 +18,11 @@ mock.module("../db/ConfigRepository", () => ({
 
 const { configController } = await import("./config");
 
-const sampleConfig = { playbackInterval: 15, autoplayEnabled: true };
+const sampleConfig = {
+	playbackInterval: 15,
+	autoplayEnabled: true,
+	theme: "mocha",
+};
 
 beforeEach(() => {
 	for (const m of allServiceMocks) m.mockReset();
@@ -45,7 +49,11 @@ describe("PUT /config", () => {
 	test("passes the body through to the service and returns the updated config", async () => {
 		// Arrange
 		updateMock.mockResolvedValue(sampleConfig);
-		const requestBody = { playbackInterval: 15, autoplayEnabled: true };
+		const requestBody = {
+			playbackInterval: 15,
+			autoplayEnabled: true,
+			theme: "mocha",
+		};
 
 		// Act
 		const response = await configController.handle(
@@ -65,9 +73,17 @@ describe("PUT /config", () => {
 
 	test("round-trips autoplayEnabled: false through the service", async () => {
 		// Arrange
-		const disabledConfig = { playbackInterval: 15, autoplayEnabled: false };
+		const disabledConfig = {
+			playbackInterval: 15,
+			autoplayEnabled: false,
+			theme: "mocha",
+		};
 		updateMock.mockResolvedValue(disabledConfig);
-		const requestBody = { playbackInterval: 15, autoplayEnabled: false };
+		const requestBody = {
+			playbackInterval: 15,
+			autoplayEnabled: false,
+			theme: "mocha",
+		};
 
 		// Act
 		const response = await configController.handle(
@@ -83,5 +99,27 @@ describe("PUT /config", () => {
 		expect(response.status).toBe(200);
 		expect(body).toEqual(disabledConfig);
 		expect(updateMock).toHaveBeenCalledWith(requestBody);
+	});
+
+	test("rejects an invalid theme value", async () => {
+		// Arrange
+		const requestBody = {
+			playbackInterval: 15,
+			autoplayEnabled: true,
+			theme: "nord",
+		};
+
+		// Act
+		const response = await configController.handle(
+			new Request("http://localhost/config", {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(requestBody),
+			}),
+		);
+
+		// Assert
+		expect(response.status).toBe(422);
+		expect(updateMock).not.toHaveBeenCalled();
 	});
 });

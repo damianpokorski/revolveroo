@@ -1,3 +1,3 @@
 {
-  "extends": "@revolver/config/tsconfig.base.json"
+	"extends": "@revolver/config/tsconfig.base.json"
 }

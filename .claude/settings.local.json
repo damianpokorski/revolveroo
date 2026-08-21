@@ -1,14 +1,14 @@
 {
-  "permissions": {
-    "allow": [
-      "WebFetch(domain:elysiajs.com)",
-      "Bash(bunx tsc *)",
-      "Bash(npx tsc *)",
-      "Bash(git stash *)",
-      "Bash(bun run *)",
-      "Bash(xargs -I{} echo {})",
-      "Bash(MIGRATIONS_FOLDER=./packages/db/src/migrations bun run --filter @revolver/migrate start)",
-      "Bash(xargs -I{} sh -c 'echo \"--- {} ---\"; cat {}')"
-    ]
-  }
+	"permissions": {
+		"allow": [
+			"WebFetch(domain:elysiajs.com)",
+			"Bash(bunx tsc *)",
+			"Bash(npx tsc *)",
+			"Bash(git stash *)",
+			"Bash(bun run *)",
+			"Bash(xargs -I{} echo {})",
+			"Bash(MIGRATIONS_FOLDER=./packages/db/src/migrations bun run --filter @revolver/migrate start)",
+			"Bash(xargs -I{} sh -c 'echo \"--- {} ---\"; cat {}')"
+		]
+	}
 }

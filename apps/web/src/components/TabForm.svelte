@@ -1,21 +1,21 @@
 <script lang="ts">
-  import type { TimeRangeData } from "$lib/api";
-  import type { EditCondition } from "$lib/types";
-  import ConditionsEditor from "./ConditionsEditor.svelte";
-  import IconPicker from "./IconPicker.svelte";
+import type { TimeRangeData } from "$lib/api";
+import type { EditCondition } from "$lib/types";
+import ConditionsEditor from "./ConditionsEditor.svelte";
+import IconPicker from "./IconPicker.svelte";
 
-  export let label: string;
-  export let title = "";
-  export let url = "";
-  export let icon: string | null = null;
-  export let hidden = false;
-  export let useProxy = false;
-  export let conditions: EditCondition[] = [];
-  export let timeRanges: TimeRangeData[] = [];
-  export let customDurationEnabled = false;
-  export let customDuration = 5000;
-  export let onsave: () => void;
-  export let oncancel: () => void;
+export let label: string;
+export let title = "";
+export let url = "";
+export let icon: string | null = null;
+export let hidden = false;
+export let useProxy = false;
+export let conditions: EditCondition[] = [];
+export let timeRanges: TimeRangeData[] = [];
+export let customDurationEnabled = false;
+export let customDuration = 5000;
+export let onsave: () => void;
+export let oncancel: () => void;
 </script>
 
 <p class="form-label">{label}</p>

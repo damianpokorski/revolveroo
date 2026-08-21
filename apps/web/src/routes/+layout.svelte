@@ -1,8 +1,8 @@
 <script lang="ts">
-	import '../app.css';
-    import Header from '../components/Header.svelte';
+import "../app.css";
+import Header from "../components/Header.svelte";
 
-	const { children } = $props();
+const { children } = $props();
 </script>
 
 <div class="grid h-svh grid-rows-[auto_1fr]">

@@ -36,7 +36,6 @@ export default defineConfig({
 			reuseExistingServer: false,
 			env: {
 				DATABASE_URL: E2E_DATABASE_URL,
-				MIGRATIONS_FOLDER: `${webDir}../../packages/db/src/migrations`,
 			},
 			stdout: "pipe",
 			stderr: "pipe",

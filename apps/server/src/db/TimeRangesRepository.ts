@@ -11,7 +11,10 @@ export class TimeRangesRepository {
 	}
 
 	async findById(id: string): Promise<TimeRange | undefined> {
-		const [row] = await db.select().from(timeRanges).where(eq(timeRanges.id, id));
+		const [row] = await db
+			.select()
+			.from(timeRanges)
+			.where(eq(timeRanges.id, id));
 		return row;
 	}
 
@@ -33,7 +36,10 @@ export class TimeRangesRepository {
 	}
 
 	async delete(id: string): Promise<TimeRange | undefined> {
-		const [row] = await db.delete(timeRanges).where(eq(timeRanges.id, id)).returning();
+		const [row] = await db
+			.delete(timeRanges)
+			.where(eq(timeRanges.id, id))
+			.returning();
 		return row;
 	}
 }
