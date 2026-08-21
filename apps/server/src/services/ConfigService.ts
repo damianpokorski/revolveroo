@@ -1,10 +1,11 @@
-import type { Theme } from "@revolver/db";
+import type { TabTransition, Theme } from "@revolver/db";
 import type { ConfigRepository } from "../db/ConfigRepository";
 
 export interface ConfigBody {
 	playbackInterval: number;
 	autoplayEnabled: boolean;
 	theme: Theme;
+	tabTransition: TabTransition;
 }
 
 export class ConfigService {

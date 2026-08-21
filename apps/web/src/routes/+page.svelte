@@ -2,6 +2,7 @@
 import { onDestroy, onMount } from "svelte";
 import { createApi } from "$lib/api";
 import { iframeSrc, type Tab, toTab } from "$lib/tabs";
+import { DEFAULT_TAB_TRANSITION, type TabTransition } from "$lib/tabTransition";
 import { applyTheme } from "$lib/theme";
 
 // Fetch tabs from API, reconstruct conditions, then filter
@@ -30,12 +31,14 @@ onMount(async () => {
 		playbackInterval = configResult.data.playbackInterval;
 		autoplayEnabled = configResult.data.autoplayEnabled;
 		applyTheme(configResult.data.theme);
+		tabTransition = configResult.data.tabTransition;
 	}
 });
 
 // --- Config ---
 let playbackInterval = 5000;
 let autoplayEnabled = true;
+let tabTransition: TabTransition = DEFAULT_TAB_TRANSITION;
 
 // --- UI state ---
 let menu = false;
@@ -54,6 +57,15 @@ const GRACE_PERIOD_MS = 8000;
 let progress = 0;
 let handle: ReturnType<typeof setInterval>;
 
+// --- Tab transition ---
+// Kept in sync with the 500ms hardcoded into the CSS transition durations below.
+const TAB_TRANSITION_MS = 500;
+// The tab index that's fading/sliding out, only non-null for the duration of the
+// transition — drives the `leaving` class so its outgoing animation can render
+// alongside the newly-active tab.
+let previousTabIndex: number | null = null;
+let transitionTimeoutHandle: ReturnType<typeof setTimeout> | undefined;
+
 onMount(() => {
 	handle = setInterval(() => {
 		if (menu || !autoplayEnabled || !autoplayRunning) return;
@@ -64,32 +76,48 @@ onMount(() => {
 			: (tabs[activeTabIndex]?.customDuration ?? playbackInterval);
 		progressPercentage = progress / effectiveInterval;
 		if (progress < effectiveInterval) return;
-		progress = 0;
-		graceActive = false;
 		let next = (activeTabIndex + 1) % tabs.length;
 		while (tabs[next]?.hiddenFromLoop) next = (next + 1) % tabs.length;
-		activeTabIndex = next;
+		switchTab(next, { graceActive: false });
 	}, FRAME);
 });
 
-onDestroy(() => clearInterval(handle));
+onDestroy(() => {
+	clearInterval(handle);
+	clearTimeout(transitionTimeoutHandle);
+});
 
-// Reset the autoplay timer whenever a tab is picked manually, so leftover
-// progress from the previous tab can't immediately trip the next switch.
-// Also starts a fresh grace cycle — even re-clicking the already-active tab
-// restarts grace, since there's no reason to special-case that.
-const selectTab = (i: number) => {
-	activeTabIndex = i;
+// Single point of mutation for `activeTabIndex`, used by both autoplay advances and
+// manual pill clicks, so the crossfade/slide bookkeeping can't drift between the two.
+// Also resets the autoplay timer, so leftover progress from the previous tab can't
+// immediately trip the next switch.
+function switchTab(
+	nextIndex: number,
+	{ graceActive: nextGrace }: { graceActive: boolean },
+) {
+	if (nextIndex !== activeTabIndex && tabTransition !== "none") {
+		previousTabIndex = activeTabIndex;
+		clearTimeout(transitionTimeoutHandle);
+		transitionTimeoutHandle = setTimeout(() => {
+			previousTabIndex = null;
+		}, TAB_TRANSITION_MS);
+	}
+	activeTabIndex = nextIndex;
 	progress = 0;
 	progressPercentage = 0;
-	graceActive = true;
-};
+	graceActive = nextGrace;
+}
+
+// Even re-clicking the already-active tab restarts grace — there's no reason to
+// special-case that (switchTab itself skips the transition bookkeeping when the
+// index doesn't actually change).
+const selectTab = (i: number) => switchTab(i, { graceActive: true });
 
 // Fallback glyph (Nerd Font "fa-question") for pills when a tab has no icon set
 const QUESTION_MARK_ICON = "";
 </script>
 
-<div class="wrapper">
+<div class="wrapper" data-transition={tabTransition}>
   <!-- Iframes: all rendered, inactive ones pushed behind -->
   {#each tabs as tab, i (tab.id)}
     <iframe
@@ -97,6 +125,7 @@ const QUESTION_MARK_ICON = "";
       src={iframeSrc(tab)}
       class="frame"
       class:active={i === activeTabIndex}
+      class:leaving={i === previousTabIndex}
       data-testid="kiosk-iframe"
       data-tab-id={tab.id}
     ></iframe>
@@ -198,10 +227,51 @@ const QUESTION_MARK_ICON = "";
     border: none;
     z-index: -500;
     pointer-events: none;
+    opacity: 0;
+    transform: translateX(0);
   }
   .frame.active {
-    z-index: 0;
+    z-index: 1;
     pointer-events: auto;
+    opacity: 1;
+  }
+  .frame.leaving {
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* Crossfade/slide are additive on top of the base binary swap above — when the
+     Transition setting is "none", no transition property applies and .leaving is
+     never set, so this collapses back to the original instant cut. Duration is
+     hardcoded to match TAB_TRANSITION_MS in the script. */
+  [data-transition="crossfade"] .frame,
+  [data-transition="slide"] .frame {
+    transition:
+      opacity 500ms ease,
+      transform 500ms ease;
+  }
+  [data-transition="crossfade"] .frame.leaving {
+    opacity: 0;
+  }
+
+  /* Slide: resting/incoming frames are parked off the right edge, the active frame
+     is centered, and the leaving frame slides fully off the left edge instead of
+     fading (opacity stays at 1 so it's visible while it slides away). */
+  [data-transition="slide"] .frame {
+    transform: translateX(100%);
+  }
+  [data-transition="slide"] .frame.active {
+    transform: translateX(0);
+  }
+  [data-transition="slide"] .frame.leaving {
+    transform: translateX(-100%);
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .frame {
+      transition: none !important;
+    }
   }
 
   .hud {

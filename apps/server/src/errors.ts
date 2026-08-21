@@ -94,13 +94,21 @@ export const errorPlugin = new Elysia({ name: "error-plugin" })
 		InternalServerError,
 		BadGatewayError,
 	})
-	.onError({ as: "global" }, ({ error, set }) => {
+	.onError({ as: "global" }, ({ error, code, set }) => {
 		if (error instanceof HttpError) {
 			set.status = error.status;
 			return { message: error.message };
 		}
-		// Unexpected (non-HttpError) failures: log the full error server-side, but
-		// don't leak internal details (driver errors, stack traces) to the client.
+		// Elysia's own request-validation failures (bad body/query/params against a
+		// route's TypeBox schema) already carry the correct status (422) and a useful
+		// message — pass them through as-is instead of masking them as a 500 below.
+		if (code === "VALIDATION") {
+			set.status = error.status;
+			return { message: error.message };
+		}
+		// Unexpected (non-HttpError, non-validation) failures: log the full error
+		// server-side, but don't leak internal details (driver errors, stack traces)
+		// to the client.
 		console.error(error);
 		set.status = 500;
 		return { message: "Internal Server Error" };

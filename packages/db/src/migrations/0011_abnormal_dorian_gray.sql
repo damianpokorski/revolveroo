@@ -1,0 +1,1 @@
+ALTER TABLE `config` ADD `tab_transition` text DEFAULT 'crossfade' NOT NULL;

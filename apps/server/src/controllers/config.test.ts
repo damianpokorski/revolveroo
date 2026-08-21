@@ -22,6 +22,7 @@ const sampleConfig = {
 	playbackInterval: 15,
 	autoplayEnabled: true,
 	theme: "mocha",
+	tabTransition: "crossfade",
 };
 
 beforeEach(() => {
@@ -53,6 +54,7 @@ describe("PUT /config", () => {
 			playbackInterval: 15,
 			autoplayEnabled: true,
 			theme: "mocha",
+			tabTransition: "crossfade",
 		};
 
 		// Act
@@ -77,12 +79,14 @@ describe("PUT /config", () => {
 			playbackInterval: 15,
 			autoplayEnabled: false,
 			theme: "mocha",
+			tabTransition: "crossfade",
 		};
 		updateMock.mockResolvedValue(disabledConfig);
 		const requestBody = {
 			playbackInterval: 15,
 			autoplayEnabled: false,
 			theme: "mocha",
+			tabTransition: "crossfade",
 		};
 
 		// Act
@@ -107,6 +111,29 @@ describe("PUT /config", () => {
 			playbackInterval: 15,
 			autoplayEnabled: true,
 			theme: "nord",
+		};
+
+		// Act
+		const response = await configController.handle(
+			new Request("http://localhost/config", {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(requestBody),
+			}),
+		);
+
+		// Assert
+		expect(response.status).toBe(422);
+		expect(updateMock).not.toHaveBeenCalled();
+	});
+
+	test("rejects an invalid tabTransition value", async () => {
+		// Arrange
+		const requestBody = {
+			playbackInterval: 15,
+			autoplayEnabled: true,
+			theme: "mocha",
+			tabTransition: "wipe",
 		};
 
 		// Act

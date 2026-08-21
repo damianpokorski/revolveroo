@@ -11,6 +11,11 @@ const ConfigModel = t.Object({
 		t.Literal("frappe"),
 		t.Literal("latte"),
 	]),
+	tabTransition: t.Union([
+		t.Literal("none"),
+		t.Literal("crossfade"),
+		t.Literal("slide"),
+	]),
 });
 
 const service = new ConfigService(new ConfigRepository());

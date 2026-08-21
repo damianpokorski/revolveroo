@@ -9,6 +9,12 @@ import {
 	type TimeRangeData,
 } from "$lib/api";
 import {
+	DEFAULT_TAB_TRANSITION,
+	TAB_TRANSITION_LABELS,
+	TAB_TRANSITIONS,
+	type TabTransition,
+} from "$lib/tabTransition";
+import {
 	applyTheme,
 	DEFAULT_THEME,
 	THEME_LABELS,
@@ -26,6 +32,7 @@ let configLoading = true;
 let playbackInterval = 5000;
 let autoplayEnabled = true;
 let theme: Theme = DEFAULT_THEME;
+let tabTransition: TabTransition = DEFAULT_TAB_TRANSITION;
 let configSaved = false;
 
 async function loadConfig() {
@@ -36,6 +43,7 @@ async function loadConfig() {
 		autoplayEnabled = data.autoplayEnabled;
 		theme = data.theme;
 		applyTheme(theme);
+		tabTransition = data.tabTransition;
 	}
 	configLoading = false;
 }
@@ -45,6 +53,7 @@ async function saveConfig() {
 		playbackInterval,
 		autoplayEnabled,
 		theme,
+		tabTransition,
 	});
 	if (error) {
 		console.error("Failed to save config", error);
@@ -316,6 +325,14 @@ async function remove(id: string) {
           <select bind:value={theme} data-testid="theme-select" on:change={() => applyTheme(theme)}>
             {#each THEMES as t}
               <option value={t}>{THEME_LABELS[t]}</option>
+            {/each}
+          </select>
+        </label>
+        <label>
+          Transition
+          <select bind:value={tabTransition} data-testid="tab-transition-select">
+            {#each TAB_TRANSITIONS as t}
+              <option value={t}>{TAB_TRANSITION_LABELS[t]}</option>
             {/each}
           </select>
         </label>
