@@ -1,7 +1,7 @@
 <script lang="ts">
 import { onDestroy, onMount } from "svelte";
 import { createApi, resolveServerUrl } from "$lib/api";
-import { iframeSrc, type Tab, toTab } from "$lib/tabs";
+import { type Tab, toTab } from "$lib/tabs";
 import { DEFAULT_TAB_TRANSITION, type TabTransition } from "$lib/tabTransition";
 import { applyTheme } from "$lib/theme";
 
@@ -135,7 +135,7 @@ const QUESTION_MARK_ICON = "";
   {#each tabs as tab, i (tab.id)}
     <iframe
       title={tab.title}
-      src={iframeSrc(tab)}
+      src={tab.url}
       class="frame"
       class:active={i === activeTabIndex}
       class:leaving={i === previousTabIndex}

@@ -9,7 +9,6 @@ export let title = "";
 export let url = "";
 export let icon: string | null = null;
 export let hidden = false;
-export let useProxy = false;
 export let conditions: EditCondition[] = [];
 export let timeRanges: TimeRangeData[] = [];
 export let customDurationEnabled = false;
@@ -29,10 +28,6 @@ export let oncancel: () => void;
   <label class="checkbox-row">
     <input type="checkbox" bind:checked={hidden} />
     Hidden from autoplay loop
-  </label>
-  <label class="checkbox-row">
-    <input type="checkbox" bind:checked={useProxy} />
-    Route through proxy
   </label>
   <label class="checkbox-row">
     <input type="checkbox" bind:checked={customDurationEnabled} />

@@ -39,7 +39,6 @@ const sampleTab = {
 	url: "https://example.com",
 	title: "Example",
 	hiddenFromLoop: false,
-	useProxy: false,
 	conditions: null,
 	customDuration: null,
 	icon: null,

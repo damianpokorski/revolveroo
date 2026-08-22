@@ -85,6 +85,13 @@
       "when": 1787349492088,
       "tag": "0011_abnormal_dorian_gray",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1787425880783,
+      "tag": "0012_friendly_radioactive_man",
+      "breakpoints": true
     }
   ]
 }

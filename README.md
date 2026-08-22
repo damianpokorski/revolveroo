@@ -7,7 +7,6 @@ A self-hosted kiosk app that cycles through your internal dashboards on tablets,
 ## Features
 
 - **Auto-rotation** — dashboards cycle on a configurable interval with a progress bar at the bottom of the screen
-- **Built-in reverse proxy** — strips `X-Frame-Options` and `Content-Security-Policy` headers so dashboards that normally refuse to embed will work inside an iframe
 - **Hidden tabs** — mark a tab to skip the autoplay loop but still reach it via manual navigation
 - **Conditional tabs** — a tab only appears when the page URL contains specific query parameters (e.g. `?floor=2`), letting you drive different display sets from a single instance
 - **Time-range conditions** — restrict a tab to specific days of the week and times of day (e.g. weekdays 9–5), independent of or combined with query-param conditions
@@ -58,7 +57,6 @@ The production Docker image serves the web UI and API from the same origin, so t
 Open `http://localhost:5173/settings` in a browser.
 
 - Click **+ Add tab**, give it a title and URL, then save.
-- Enable **Route through proxy** if the dashboard blocks iframes (most Grafana and similar tools do).
 - Enable **Hidden from autoplay loop** if you want the tab accessible by hand but not shown during rotation.
 - Optionally add **query param conditions** to show a tab only when the kiosk URL includes a matching parameter.
 
@@ -104,26 +102,13 @@ Each of the devices would **revolve** through different set of tabs
 
 And the best part is that - after setting up your tablets once  (through something like fully kiosk) you can adjust all of the tabs from one central place, without having to run around the house!
 
-### Reverse proxy
-
-When a tab has **Route through proxy** enabled, the frontend loads it as `/api/proxy?url=<encoded-url>` instead of the original URL.
-
-The proxy controller (`apps/server/src/controllers/proxy.ts`) does the following on every request:
-
-1. Fetches the upstream URL server-side (bypassing browser CORS/CSP entirely).
-2. Strips headers that would block iframe embedding: `X-Frame-Options`, `Content-Security-Policy`, `Content-Encoding`.
-3. Rewrites relative URLs in HTML (`src`, `href`, `action`, `srcset`), CSS (`url(...)`), and JS (static/dynamic `import`) to route through `/api/proxy?url=…`.
-4. Injects a `fetch`/`XMLHttpRequest` shim into every proxied HTML page's `<head>` so runtime requests made by the page's own scripts are also proxied transparently.
-5. Registers a service worker at `/api/proxy-sw.js` to intercept dynamic sub-resource requests that the shim alone can't catch.
-
-
 ## Project structure
 
 ```
 revolver/
 ├── apps/
 │   ├── web/          # SvelteKit frontend (kiosk view + settings)
-│   ├── server/       # Elysia REST API + reverse proxy
+│   ├── server/       # Elysia REST API
 │   └── migrate/      # Applies DB migrations and seeds default data on startup
 ├── packages/
 │   ├── db/           # Drizzle ORM schema, migrations, SQLite
@@ -181,9 +166,9 @@ This spins up the server and web dev servers for you (Playwright's `webServer` c
 Revolver is a Bun monorepo with three apps that run side by side:
 
 - **`apps/web`** (SvelteKit, `:5173`) — the browser-facing app. Two routes: `/` renders the kiosk carousel, `/settings` renders the management UI. All data fetching goes through a thin API client in `src/lib/api.ts` that talks to the server.
-- **`apps/server`** (Elysia, `:3000`) — the REST API. Four controllers: `tabs` (CRUD + reorder), `time-ranges` (CRUD for day/time-of-day windows), `config` (playback interval, autoplay, and theme), and `proxy` (reverse proxy + service worker endpoint). OpenAPI docs are generated automatically and available at `/api/swagger`.
+- **`apps/server`** (Elysia, `:3000`) — the REST API. Four controllers: `tabs` (CRUD + reorder), `time-ranges` (CRUD for day/time-of-day windows), `config` (playback interval, autoplay, and theme), and `events` (SSE change notifications). OpenAPI docs are generated automatically and available at `/api/swagger`.
 - **`apps/migrate`** — applies pending Drizzle migrations and seeds default tabs/time-ranges/config on startup. Runs once before `apps/server` starts (see the Dockerfile `CMD`); `apps/server` also runs the same migration step itself as a safety net, so local dev never needs this run manually.
-- **`packages/db`** — Drizzle ORM schema and migrations, shared by `apps/server` and `apps/migrate`. The database is a single SQLite file (`local.db` at the repo root). The `tabs` table stores title, URL, position, flags (`hiddenFromLoop`, `useProxy`), a JSON `conditions` column, and an optional custom duration; `time_ranges` stores named day/time windows; `config` is a single-row table holding playback interval, autoplay, and theme.
+- **`packages/db`** — Drizzle ORM schema and migrations, shared by `apps/server` and `apps/migrate`. The database is a single SQLite file (`local.db` at the repo root). The `tabs` table stores title, URL, position, a `hiddenFromLoop` flag, a JSON `conditions` column, and an optional custom duration; `time_ranges` stores named day/time windows; `config` is a single-row table holding playback interval, autoplay, and theme.
 
 ### Extending the conditions system
 

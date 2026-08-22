@@ -8,7 +8,6 @@ export interface TabBody {
 	title: string;
 	url: string;
 	hiddenFromLoop?: boolean;
-	useProxy?: boolean;
 	conditions?: TabCondition[];
 	customDuration?: number | null;
 	icon?: string | null;
@@ -42,7 +41,6 @@ export class TabsService {
 		const tab = await this.repo.create({
 			id: uuidv7(),
 			hiddenFromLoop: false,
-			useProxy: false,
 			conditions: null,
 			customDuration: null,
 			icon: null,

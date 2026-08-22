@@ -1,0 +1,1 @@
+ALTER TABLE `tabs` DROP COLUMN `use_proxy`;

@@ -159,7 +159,6 @@ let fTitle = "";
 let fUrl = "";
 let fIcon: string | null = null;
 let fHidden = false;
-let fUseProxy = false;
 let fConditions: EditCondition[] = [];
 let fCustomDurationEnabled = false;
 let fCustomDuration = 5000;
@@ -206,7 +205,6 @@ function openEdit(tab: TabData) {
 	fUrl = tab.url;
 	fIcon = tab.icon ?? null;
 	fHidden = tab.hiddenFromLoop ?? false;
-	fUseProxy = tab.useProxy ?? false;
 	fCustomDurationEnabled = tab.customDuration != null;
 	fCustomDuration = tab.customDuration ?? 5000;
 	fConditions = (tab.conditions ?? []).map(
@@ -230,7 +228,6 @@ function openAdd() {
 	fUrl = "";
 	fIcon = null;
 	fHidden = false;
-	fUseProxy = false;
 	fConditions = [];
 	fCustomDurationEnabled = false;
 	fCustomDuration = 5000;
@@ -247,7 +244,6 @@ function buildBody(): TabBody {
 		url: fUrl,
 		icon: fIcon,
 		hiddenFromLoop: fHidden,
-		useProxy: fUseProxy,
 		conditions: fConditions.map((c) =>
 			c.type === "timeRange"
 				? { type: "timeRange" as const, timeRangeIds: c.timeRangeIds }
@@ -440,7 +436,6 @@ async function remove(id: string) {
           bind:url={fUrl}
           bind:icon={fIcon}
           bind:hidden={fHidden}
-          bind:useProxy={fUseProxy}
           bind:conditions={fConditions}
           {timeRanges}
           bind:customDurationEnabled={fCustomDurationEnabled}
@@ -472,7 +467,6 @@ async function remove(id: string) {
               bind:url={fUrl}
               bind:icon={fIcon}
               bind:hidden={fHidden}
-              bind:useProxy={fUseProxy}
               bind:conditions={fConditions}
               {timeRanges}
               bind:customDurationEnabled={fCustomDurationEnabled}
@@ -499,7 +493,6 @@ async function remove(id: string) {
                   {#if tab.hiddenFromLoop}<span class="badge muted"
                       >🙈 hidden</span
                     >{/if}
-                  {#if tab.useProxy}<span class="badge">🔁 proxied</span>{/if}
                   {#if tab.conditions?.length}<span class="badge"
                       >⚙ {tab.conditions.length} condition{tab.conditions
                         .length > 1

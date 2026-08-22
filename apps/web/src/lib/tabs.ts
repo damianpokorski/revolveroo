@@ -56,6 +56,3 @@ export const toTab = (
 			: new QueryParamTabCondition(c.queryParams),
 	),
 });
-
-export const iframeSrc = (tab: Tab): string =>
-	tab.useProxy ? `/api/proxy?url=${encodeURIComponent(tab.url)}` : tab.url;

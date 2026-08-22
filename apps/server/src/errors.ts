@@ -46,12 +46,6 @@ export class InternalServerError extends HttpError {
 	}
 }
 
-export class BadGatewayError extends HttpError {
-	constructor(message = "Bad Gateway") {
-		super(502, message);
-	}
-}
-
 export const errorModels = {
 	BadRequestError: t.Object(
 		{ message: t.String() },
@@ -77,10 +71,6 @@ export const errorModels = {
 		{ message: t.String() },
 		{ description: "An unexpected error occurred on the server" },
 	),
-	BadGatewayError: t.Object(
-		{ message: t.String() },
-		{ description: "An upstream service returned an invalid response" },
-	),
 };
 
 export const errorPlugin = new Elysia({ name: "error-plugin" })
@@ -92,7 +82,6 @@ export const errorPlugin = new Elysia({ name: "error-plugin" })
 		NotFoundError,
 		UnprocessableEntityError,
 		InternalServerError,
-		BadGatewayError,
 	})
 	.onError({ as: "global" }, ({ error, code, set }) => {
 		if (error instanceof HttpError) {

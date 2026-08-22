@@ -11,7 +11,6 @@ export const tabs = sqliteTable("tabs", {
 	hiddenFromLoop: integer("hidden_from_loop", { mode: "boolean" })
 		.notNull()
 		.default(false),
-	useProxy: integer("use_proxy", { mode: "boolean" }).notNull().default(false),
 	conditions: text("conditions", { mode: "json" }).$type<TabCondition[]>(),
 	position: integer("position").notNull().default(0),
 	customDuration: integer("custom_duration"),

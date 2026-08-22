@@ -3,7 +3,6 @@ import { Elysia } from "elysia";
 import { z } from "zod";
 import { configController } from "./controllers/config";
 import { eventsController } from "./controllers/events";
-import { proxyController, proxySwRoute } from "./controllers/proxy";
 import { tabsController } from "./controllers/tabs";
 import { timeRangesController } from "./controllers/time-ranges";
 import { errorPlugin } from "./errors";
@@ -23,6 +22,4 @@ export const router = new Elysia({ prefix: "/api" })
 	.use(configController)
 	.use(tabsController)
 	.use(timeRangesController)
-	.use(eventsController)
-	.use(proxyController)
-	.use(proxySwRoute);
+	.use(eventsController);
