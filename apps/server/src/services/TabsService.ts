@@ -2,6 +2,7 @@ import type { TabCondition } from "@revolver/db";
 import { v7 as uuidv7 } from "uuid";
 import type { Tab, TabsRepository } from "../db/TabsRepository";
 import { BadRequestError, NotFoundError } from "../errors";
+import { notifyDataChanged } from "../events";
 
 export interface TabBody {
 	title: string;
@@ -47,19 +48,21 @@ export class TabsService {
 			icon: null,
 			...data,
 		});
+		notifyDataChanged();
 		return toApiTab(tab);
 	}
 
 	async update(id: string, data: TabBody) {
 		await this.getById(id);
 		const tab = await this.repo.update(id, data);
-		console.log({ tab, data });
+		notifyDataChanged();
 		return toApiTab(tab!);
 	}
 
 	async delete(id: string) {
 		await this.getById(id);
 		const tab = await this.repo.delete(id);
+		notifyDataChanged();
 		return toApiTab(tab!);
 	}
 
@@ -74,6 +77,7 @@ export class TabsService {
 			);
 		}
 		const tabs = await this.repo.reorder(ids);
+		notifyDataChanged();
 		return tabs.map(toApiTab);
 	}
 }

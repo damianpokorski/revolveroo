@@ -1,7 +1,7 @@
 import { treaty } from "@elysia/eden";
 import type { router } from "server/src/router";
 
-const resolveServerUrl = () =>
+export const resolveServerUrl = () =>
 	import.meta.env.DEV ? "http://localhost:3000" : window.location.origin;
 
 export const createApi = () => treaty<typeof router>(resolveServerUrl());

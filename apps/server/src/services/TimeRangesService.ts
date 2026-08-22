@@ -1,6 +1,7 @@
 import { v7 as uuidv7 } from "uuid";
 import type { TimeRangesRepository } from "../db/TimeRangesRepository";
 import { NotFoundError } from "../errors";
+import { notifyDataChanged } from "../events";
 
 export interface TimeRangeBody {
 	name: string;
@@ -23,18 +24,26 @@ export class TimeRangesService {
 	}
 
 	async create(data: TimeRangeBody) {
-		return this.repo.create({ id: uuidv7(), daysOfWeek: null, ...data });
+		const timeRange = await this.repo.create({
+			id: uuidv7(),
+			daysOfWeek: null,
+			...data,
+		});
+		notifyDataChanged();
+		return timeRange;
 	}
 
 	async update(id: string, data: TimeRangeBody) {
 		await this.getById(id);
 		const timeRange = await this.repo.update(id, data);
+		notifyDataChanged();
 		return timeRange!;
 	}
 
 	async delete(id: string) {
 		await this.getById(id);
 		const timeRange = await this.repo.delete(id);
+		notifyDataChanged();
 		return timeRange!;
 	}
 }

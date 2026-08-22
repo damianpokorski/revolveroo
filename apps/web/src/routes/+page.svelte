@@ -1,13 +1,13 @@
 <script lang="ts">
 import { onDestroy, onMount } from "svelte";
-import { createApi } from "$lib/api";
+import { createApi, resolveServerUrl } from "$lib/api";
 import { iframeSrc, type Tab, toTab } from "$lib/tabs";
 import { DEFAULT_TAB_TRANSITION, type TabTransition } from "$lib/tabTransition";
 import { applyTheme } from "$lib/theme";
 
 // Fetch tabs from API, reconstruct conditions, then filter
 let tabs: Tab[] = [];
-onMount(async () => {
+async function refreshData() {
 	const api = createApi();
 	const [tabsResult, configResult, timeRangesResult] = await Promise.all([
 		api.api.tabs.get(),
@@ -33,6 +33,19 @@ onMount(async () => {
 		applyTheme(configResult.data.theme);
 		tabTransition = configResult.data.tabTransition;
 	}
+}
+onMount(refreshData);
+
+// Re-fetch tabs/config/time-ranges the instant they change on the server (e.g. an
+// edit made from another device's Settings page), so kiosk screens stay in sync
+// without a manual reload. The browser's EventSource auto-reconnects on its own.
+onMount(() => {
+	const source = new EventSource(`${resolveServerUrl()}/api/events`);
+	source.addEventListener("change", async () => {
+		await refreshData();
+		if (tabs.length > 0) switchTab(0, { graceActive: false });
+	});
+	return () => source.close();
 });
 
 // --- Config ---
