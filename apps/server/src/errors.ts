@@ -16,18 +16,6 @@ export class BadRequestError extends HttpError {
 	}
 }
 
-export class UnauthorizedError extends HttpError {
-	constructor(message = "Unauthorized") {
-		super(401, message);
-	}
-}
-
-export class ForbiddenError extends HttpError {
-	constructor(message = "Forbidden") {
-		super(403, message);
-	}
-}
-
 export class NotFoundError extends HttpError {
 	constructor(message = "Not Found") {
 		super(404, message);
@@ -51,14 +39,6 @@ export const errorModels = {
 		{ message: t.String() },
 		{ description: "The request was malformed or invalid" },
 	),
-	UnauthorizedError: t.Object(
-		{ message: t.String() },
-		{ description: "Authentication is required" },
-	),
-	ForbiddenError: t.Object(
-		{ message: t.String() },
-		{ description: "Insufficient permissions to access this resource" },
-	),
 	NotFoundError: t.Object(
 		{ message: t.String() },
 		{ description: "The requested resource was not found" },
@@ -77,8 +57,6 @@ export const errorPlugin = new Elysia({ name: "error-plugin" })
 	.model(errorModels)
 	.error({
 		BadRequestError,
-		UnauthorizedError,
-		ForbiddenError,
 		NotFoundError,
 		UnprocessableEntityError,
 		InternalServerError,

@@ -34,13 +34,11 @@ bun run fonts:setup
 bun run dev
 ```
 
-The database is created and migrated automatically on first boot — no separate setup step needed. The web UI is at `http://localhost:5173` and the API at `http://localhost:3000`.
+A default data file (`local.yaml` at the repo root) is created automatically on first boot — no separate setup step needed. The web UI is at `http://localhost:5173` and the API at `http://localhost:3000`.
 
-### Updating an existing local database
+### Editing the data file directly
 
-Local dev and production both apply schema changes through the same Drizzle migration flow, so after pulling code that touches `packages/db/src/schema/`, just restart `bun run dev` — pending migrations are applied automatically before the server starts serving requests.
-
-If your local database predates this (it was originally set up with `bun run db:push`, which doesn't record migration history), it won't be picked up by that automatic step — re-run `bun run db:push` to sync it manually instead. The server logs a clear message telling you to do this if it detects the mismatch. Deleting that database file and letting `bun run dev` recreate it from scratch is the easiest way to fully switch over.
+All app state (tabs, time ranges, and config) lives in a single YAML file — `local.yaml` in local dev, or `/data/revolver.yaml` inside the Docker image's `/data` volume in production (override the path with the `DATA_FILE` env var). You can edit it by hand while the app is running: the server watches the file and hot-reloads changes over the same SSE connection that powers live updates from the UI, and comments you add survive edits made through the UI afterward. If a hand-edit leaves an entry invalid (a typo, a missing field), that one entry is skipped/falls back to its last-known-good value — the rest of the file still loads.
 
 ---
 
@@ -108,10 +106,8 @@ And the best part is that - after setting up your tablets once  (through somethi
 revolver/
 ├── apps/
 │   ├── web/          # SvelteKit frontend (kiosk view + settings)
-│   ├── server/       # Elysia REST API
-│   └── migrate/      # Applies DB migrations and seeds default data on startup
+│   └── server/       # Elysia REST API + the YAML data store (src/store/)
 ├── packages/
-│   ├── db/           # Drizzle ORM schema, migrations, SQLite
 │   ├── env/          # Shared environment variable schemas
 │   └── config/       # Shared TypeScript config
 ```
@@ -125,11 +121,6 @@ revolver/
 | `bun run dev` | Start web and server in development mode |
 | `bun run build` | Build all apps |
 | `bun run fonts:setup` | One-time: fetch the self-hosted Nerd Font used by the tab icon picker |
-| `bun run db:push` | Apply schema to the local SQLite database (only needed for databases predating the migration flow — see above) |
-| `bun run db:generate` | Generate a new migration from schema changes |
-| `bun run db:migrate` | Run pending migrations |
-| `bun run db:studio` | Open Drizzle Studio (database browser UI) |
-| `bun run db:local` | Start a local Turso dev server, an alternative to a plain SQLite file |
 | `bun run check` | Run Biome lint + format checks |
 | `bun run check-types` | TypeScript type-check across all packages |
 | `bun run test` | Run server unit tests |
@@ -153,9 +144,9 @@ bun run test:e2e:install
 bun run test:e2e
 ```
 
-This spins up the server and web dev servers for you (Playwright's `webServer` config) against a **disposable, seeded SQLite file** (`apps/web/e2e/.e2e.db`, gitignored) — never your own `local.db`. Before the server starts listening, its startup command wipes and re-seeds that file via the same migrate/seed logic `apps/migrate` uses on container startup, so all four spec files share one consistent set of fixture tabs.
+This spins up the server and web dev servers for you (Playwright's `webServer` config) against a **disposable, seeded YAML data file** (`apps/web/e2e/.e2e.yaml`, gitignored) — never your own `local.yaml`. Before the server starts listening, its startup command wipes that file; the server's own boot sequence then re-creates it with default data, so all four spec files share one consistent set of fixture tabs.
 
-**Don't run `bun run test:e2e` while `bun run dev` is already up** — both bind the same ports (3000/5173), and the e2e run needs those ports for its own server pointed at the disposable DB. Stop your dev servers first.
+**Don't run `bun run test:e2e` while `bun run dev` is already up** — both bind the same ports (3000/5173), and the e2e run needs those ports for its own server pointed at the disposable data file. Stop your dev servers first.
 
 ---
 
@@ -163,19 +154,18 @@ This spins up the server and web dev servers for you (Playwright's `webServer` c
 
 ### Architecture
 
-Revolver is a Bun monorepo with three apps that run side by side:
+Revolver is a Bun monorepo with two apps that run side by side:
 
 - **`apps/web`** (SvelteKit, `:5173`) — the browser-facing app. Two routes: `/` renders the kiosk carousel, `/settings` renders the management UI. All data fetching goes through a thin API client in `src/lib/api.ts` that talks to the server.
 - **`apps/server`** (Elysia, `:3000`) — the REST API. Four controllers: `tabs` (CRUD + reorder), `time-ranges` (CRUD for day/time-of-day windows), `config` (playback interval, autoplay, and theme), and `events` (SSE change notifications). OpenAPI docs are generated automatically and available at `/api/swagger`.
-- **`apps/migrate`** — applies pending Drizzle migrations and seeds default tabs/time-ranges/config on startup. Runs once before `apps/server` starts (see the Dockerfile `CMD`); `apps/server` also runs the same migration step itself as a safety net, so local dev never needs this run manually.
-- **`packages/db`** — Drizzle ORM schema and migrations, shared by `apps/server` and `apps/migrate`. The database is a single SQLite file (`local.db` at the repo root). The `tabs` table stores title, URL, position, a `hiddenFromLoop` flag, a JSON `conditions` column, and an optional custom duration; `time_ranges` stores named day/time windows; `config` is a single-row table holding playback interval, autoplay, and theme.
+- **`apps/server/src/store`** — the YAML data store. On boot, `YamlStore` creates a default data file if none exists, parses and validates the existing one otherwise, and watches it for external hand-edits (debounced, with self-write detection so the app's own saves don't trigger a spurious reload). All reads/writes go through a nested `config:`/`tabs:`/`timeRanges:` structure keyed by human-readable slugs (e.g. `front-door-camera`) rather than opaque IDs; tab/time-range order is simply the order entries appear in the file. Writes use the `yaml` package's `Document` API (not a plain-object round-trip) so hand-added comments survive app-initiated saves, and are applied atomically (write to a temp file, then rename). A per-entity validation pass means one malformed hand-edit only drops or reverts that one tab/time-range rather than the whole file.
 
 ### Extending the conditions system
 
-Time-range conditions (day-of-week/time-of-day tab visibility) are already built and are a good reference for adding another condition type — see `TimeRangeTabCondition` in `apps/web/src/lib/tabs.ts`, backed by the `time_ranges` table (`packages/db/src/schema/time-ranges.ts`) and the `time-ranges` controller/service/repository trio in `apps/server`. The pattern for adding a new condition type:
+Time-range conditions (day-of-week/time-of-day tab visibility) are already built and are a good reference for adding another condition type — see `TimeRangeTabCondition` in `apps/web/src/lib/tabs.ts`, backed by the `timeRanges` section of the data file (`apps/server/src/store/types.ts`) and the `time-ranges` controller/service/repository trio in `apps/server`. The pattern for adding a new condition type:
 
 1. Implement the `TabCondition` interface in `apps/web/src/lib/tabs.ts`, following `TimeRangeTabCondition`'s `evaluator()` as an example.
-2. Extend the DB schema (either `packages/db/src/schema/tabs.ts` for an inline condition shape, or a new table like `time-ranges.ts` for a referenced one), then run `bun run db:generate` — the migration is picked up automatically on the next `bun run dev` or deploy.
+2. Extend the relevant zod schema in `apps/server/src/store/schema.ts` (either `TabEntrySchema` for an inline condition shape, or a new schema/section like `TimeRangeEntrySchema` for a referenced one) — new fields pick up automatically on the next boot via each schema's `.default(...)`, no migration step needed.
 3. Add UI for creating/editing the new condition type in `apps/web/src/routes/settings/+page.svelte`.
 4. Wire it up in the `toTab` mapper in `apps/web/src/lib/tabs.ts`.
 
@@ -188,8 +178,7 @@ Time-range conditions (day-of-week/time-of-day tab visibility) are already built
 | [Bun](https://bun.sh) | Runtime and package manager |
 | [SvelteKit](https://kit.svelte.dev) | Frontend framework — file-based routing, reactive UI |
 | [Elysia](https://elysiajs.com) | Type-safe HTTP framework for the API server |
-| [Drizzle ORM](https://orm.drizzle.team) | TypeScript-first ORM with schema-driven migrations |
-| [SQLite](https://sqlite.org) | Embedded database — no separate infrastructure needed |
+| [yaml](https://eemeli.org/yaml/) | Comment-preserving YAML parsing/serialization for the data file |
 | [Biome](https://biomejs.dev) | Linting and formatting (replaces ESLint + Prettier) |
 | [Vite+](https://viteplus.dev) | Monorepo task runner built on Vite/Rolldown |
 | [svelte-dnd-action](https://github.com/isaacs/svelte-dnd-action) | Drag-and-drop reordering in the settings UI |

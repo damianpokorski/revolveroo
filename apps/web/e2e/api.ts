@@ -25,19 +25,29 @@ export async function fetchTabByTitle(
 	return tab;
 }
 
+export interface Config {
+	playbackInterval: number;
+	autoplayEnabled: boolean;
+	theme: string;
+	tabTransition: string;
+}
+
+// PUT /config replaces the whole config object (no partial-update support), so a
+// patch has to be merged onto the current config before sending — otherwise fields
+// the caller didn't mention would fail the route's "all fields required" validation.
 export async function putConfig(
 	request: APIRequestContext,
-	body: { playbackInterval: number; autoplayEnabled: boolean },
+	patch: Partial<Config>,
 ) {
+	const current = await getConfig(request);
+	const body = { ...current, ...patch };
 	const res = await request.put(`${API_BASE}/config`, { data: body });
 	if (!res.ok()) {
 		throw new Error(`PUT /config failed: ${res.status()} ${await res.text()}`);
 	}
 }
 
-export async function getConfig(
-	request: APIRequestContext,
-): Promise<{ playbackInterval: number; autoplayEnabled: boolean }> {
+export async function getConfig(request: APIRequestContext): Promise<Config> {
 	const res = await request.get(`${API_BASE}/config`);
 	return res.json();
 }

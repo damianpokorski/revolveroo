@@ -1,6 +1,6 @@
-import type { TabTransition, Theme } from "@revolver/db";
 import type { ConfigRepository } from "../db/ConfigRepository";
 import { notifyDataChanged } from "../events";
+import type { TabTransition, Theme } from "../store/types";
 
 export interface ConfigBody {
 	playbackInterval: number;
@@ -13,12 +13,11 @@ export class ConfigService {
 	constructor(private readonly repo: ConfigRepository) {}
 
 	async get() {
-		const { id: _, ...config } = await this.repo.get();
-		return config;
+		return this.repo.get();
 	}
 
 	async update(data: ConfigBody) {
-		const { id: _, ...config } = await this.repo.update(data);
+		const config = await this.repo.update(data);
 		notifyDataChanged();
 		return config;
 	}

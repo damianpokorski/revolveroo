@@ -1,56 +1,31 @@
-import { db, orm, tabs } from "@revolver/db";
+import type { Tab, TabCondition } from "../store/types";
+import { store } from "../store/YamlStore";
 
-export type Tab = typeof tabs.$inferSelect;
-export type NewTab = typeof tabs.$inferInsert;
-
-const { sql, eq } = orm;
+export type { Tab, TabCondition };
+export type NewTab = Omit<Tab, "id">;
 
 export class TabsRepository {
 	async findAll(): Promise<Tab[]> {
-		return db.select().from(tabs).orderBy(tabs.position);
+		return store.listTabs();
 	}
 
 	async findById(id: string): Promise<Tab | undefined> {
-		const [tab] = await db.select().from(tabs).where(eq(tabs.id, id));
-		return tab;
+		return store.getTab(id);
 	}
 
 	async create(data: NewTab): Promise<Tab> {
-		const [row] = await db
-			.select({ maxPos: sql<number>`coalesce(max(${tabs.position}), -1)` })
-			.from(tabs);
-		const [tab] = await db
-			.insert(tabs)
-			.values({ ...data, position: row!.maxPos + 1 })
-			.returning();
-		return tab!;
+		return store.createTab(data);
 	}
 
-	async update(
-		id: string,
-		data: Partial<Omit<NewTab, "id">>,
-	): Promise<Tab | undefined> {
-		const [tab] = await db
-			.update(tabs)
-			.set(data)
-			.where(eq(tabs.id, id))
-			.returning();
-		return tab;
+	async update(id: string, data: Partial<NewTab>): Promise<Tab | undefined> {
+		return store.updateTab(id, data);
 	}
 
 	async delete(id: string): Promise<Tab | undefined> {
-		const [tab] = await db.delete(tabs).where(eq(tabs.id, id)).returning();
-		return tab;
+		return store.deleteTab(id);
 	}
 
 	async reorder(orderedIds: string[]): Promise<Tab[]> {
-		return db.transaction(async (tx) => {
-			await Promise.all(
-				orderedIds.map((id, position) =>
-					tx.update(tabs).set({ position }).where(eq(tabs.id, id)),
-				),
-			);
-			return tx.select().from(tabs).orderBy(tabs.position);
-		});
+		return store.reorderTabs(orderedIds);
 	}
 }

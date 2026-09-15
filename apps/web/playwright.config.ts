@@ -1,24 +1,24 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig, devices } from "@playwright/test";
-import { E2E_DATABASE_URL, E2E_DB_PATH } from "./e2e/db-path";
+import { E2E_DATA_FILE_PATH } from "./e2e/data-file-path";
 
 const webDir = fileURLToPath(new URL(".", import.meta.url));
 const serverDir = `${webDir}../server`;
 
 // Playwright starts `webServer` entries concurrently with (not after) any `globalSetup`,
-// so seeding the disposable DB out-of-band raced the server's own startup. Instead, the
-// server's own command wipes + migrates + seeds before it ever calls `.listen()` — the
-// `url` readiness check then only succeeds once that's genuinely done, no race possible.
+// so seeding the disposable data file out-of-band would race the server's own startup.
+// Instead, wipe any leftover file first, then let the server's own boot sequence (which
+// creates the default data file if missing) do the seeding — the `url` readiness check
+// then only succeeds once that's genuinely done, no race possible.
 const serverCommand = [
-	`rm -f ${E2E_DB_PATH} ${E2E_DB_PATH}-wal ${E2E_DB_PATH}-shm`,
-	"bun run ../migrate/src/index.ts",
+	`rm -f ${E2E_DATA_FILE_PATH}`,
 	"bun run --hot src/index.ts",
 ].join(" && ");
 
 export default defineConfig({
 	testDir: "./e2e",
-	// The disposable DB is a single shared SQLite file for the whole run — keep specs
-	// serial so they can't race each other on the singleton `config` row.
+	// The disposable data file is shared for the whole run — keep specs serial so they
+	// can't race each other on the singleton config section.
 	workers: 1,
 	fullyParallel: false,
 	retries: 0,
@@ -35,7 +35,7 @@ export default defineConfig({
 			url: "http://localhost:3000/api/health",
 			reuseExistingServer: false,
 			env: {
-				DATABASE_URL: E2E_DATABASE_URL,
+				DATA_FILE: E2E_DATA_FILE_PATH,
 			},
 			stdout: "pipe",
 			stderr: "pipe",

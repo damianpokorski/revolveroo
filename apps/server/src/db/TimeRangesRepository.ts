@@ -1,45 +1,30 @@
-import { db, orm, timeRanges } from "@revolver/db";
+import type { TimeRange } from "../store/types";
+import { store } from "../store/YamlStore";
 
-export type TimeRange = typeof timeRanges.$inferSelect;
-export type NewTimeRange = typeof timeRanges.$inferInsert;
-
-const { eq } = orm;
+export type { TimeRange };
+export type NewTimeRange = Omit<TimeRange, "id">;
 
 export class TimeRangesRepository {
 	async findAll(): Promise<TimeRange[]> {
-		return db.select().from(timeRanges).orderBy(timeRanges.name);
+		return store.listTimeRanges();
 	}
 
 	async findById(id: string): Promise<TimeRange | undefined> {
-		const [row] = await db
-			.select()
-			.from(timeRanges)
-			.where(eq(timeRanges.id, id));
-		return row;
+		return store.getTimeRange(id);
 	}
 
 	async create(data: NewTimeRange): Promise<TimeRange> {
-		const [row] = await db.insert(timeRanges).values(data).returning();
-		return row!;
+		return store.createTimeRange(data);
 	}
 
 	async update(
 		id: string,
-		data: Partial<Omit<NewTimeRange, "id">>,
+		data: Partial<NewTimeRange>,
 	): Promise<TimeRange | undefined> {
-		const [row] = await db
-			.update(timeRanges)
-			.set(data)
-			.where(eq(timeRanges.id, id))
-			.returning();
-		return row;
+		return store.updateTimeRange(id, data);
 	}
 
 	async delete(id: string): Promise<TimeRange | undefined> {
-		const [row] = await db
-			.delete(timeRanges)
-			.where(eq(timeRanges.id, id))
-			.returning();
-		return row;
+		return store.deleteTimeRange(id);
 	}
 }

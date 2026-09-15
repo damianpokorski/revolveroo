@@ -69,9 +69,9 @@ jobs:
         run: bunx playwright install --with-deps chromium
         working-directory: apps/web
 
-      # Runs against a disposable, self-seeding SQLite file — apps/web/playwright.config.ts's
-      # webServer entries wipe/migrate/seed before listening, so no CI-specific DB setup
-      # is needed here.
+      # Runs against a disposable, self-seeding YAML data file — apps/web/playwright.config.ts's
+      # webServer entry wipes any leftover file before listening, and the server itself
+      # creates the default data file on boot, so no CI-specific setup is needed here.
       - name: E2E / browser tests
         run: bun run test:e2e
 

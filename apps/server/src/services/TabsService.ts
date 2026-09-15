@@ -1,8 +1,7 @@
-import type { TabCondition } from "@revolver/db";
-import { v7 as uuidv7 } from "uuid";
 import type { Tab, TabsRepository } from "../db/TabsRepository";
 import { BadRequestError, NotFoundError } from "../errors";
 import { notifyDataChanged } from "../events";
+import type { TabCondition } from "../store/types";
 
 export interface TabBody {
 	title: string;
@@ -13,33 +12,21 @@ export interface TabBody {
 	icon?: string | null;
 }
 
-// Legacy rows created before condition types existed only have `{ queryParams }`.
-const normalizeCondition = (
-	c: TabCondition | { queryParams: Record<string, string> },
-): TabCondition =>
-	"type" in c ? c : { type: "queryParams", queryParams: c.queryParams };
-
-const toApiTab = ({ position: _, ...tab }: Tab) => ({
-	...tab,
-	conditions: tab.conditions?.map(normalizeCondition) ?? tab.conditions,
-});
-
 export class TabsService {
 	constructor(private readonly repo: TabsRepository) {}
 
-	async getAll() {
-		return (await this.repo.findAll()).map(toApiTab);
+	async getAll(): Promise<Tab[]> {
+		return this.repo.findAll();
 	}
 
-	async getById(id: string) {
+	async getById(id: string): Promise<Tab> {
 		const tab = await this.repo.findById(id);
 		if (!tab) throw new NotFoundError("Tab not found");
-		return toApiTab(tab);
+		return tab;
 	}
 
-	async create(data: TabBody) {
+	async create(data: TabBody): Promise<Tab> {
 		const tab = await this.repo.create({
-			id: uuidv7(),
 			hiddenFromLoop: false,
 			conditions: null,
 			customDuration: null,
@@ -47,24 +34,24 @@ export class TabsService {
 			...data,
 		});
 		notifyDataChanged();
-		return toApiTab(tab);
+		return tab;
 	}
 
-	async update(id: string, data: TabBody) {
+	async update(id: string, data: TabBody): Promise<Tab> {
 		await this.getById(id);
 		const tab = await this.repo.update(id, data);
 		notifyDataChanged();
-		return toApiTab(tab!);
+		return tab!;
 	}
 
-	async delete(id: string) {
+	async delete(id: string): Promise<Tab> {
 		await this.getById(id);
 		const tab = await this.repo.delete(id);
 		notifyDataChanged();
-		return toApiTab(tab!);
+		return tab!;
 	}
 
-	async reorder(ids: string[]) {
+	async reorder(ids: string[]): Promise<Tab[]> {
 		const current = await this.repo.findAll();
 		const currentIds = new Set(current.map((tab) => tab.id));
 		const sameSet =
@@ -76,6 +63,6 @@ export class TabsService {
 		}
 		const tabs = await this.repo.reorder(ids);
 		notifyDataChanged();
-		return tabs.map(toApiTab);
+		return tabs;
 	}
 }

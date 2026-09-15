@@ -1,4 +1,3 @@
-import { v7 as uuidv7 } from "uuid";
 import type { TimeRangesRepository } from "../db/TimeRangesRepository";
 import { NotFoundError } from "../errors";
 import { notifyDataChanged } from "../events";
@@ -25,7 +24,6 @@ export class TimeRangesService {
 
 	async create(data: TimeRangeBody) {
 		const timeRange = await this.repo.create({
-			id: uuidv7(),
 			daysOfWeek: null,
 			...data,
 		});

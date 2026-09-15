@@ -1,1 +1,0 @@
-ALTER TABLE `tabs` ADD `use_proxy` integer DEFAULT false NOT NULL;

@@ -50,7 +50,8 @@ lerna-debug.log*
 coverage
 .nyc_output
 
-# Playwright e2e — disposable seeded DB + run artifacts, never committed
+# Playwright e2e — disposable seeded data file + run artifacts, never committed
+apps/web/e2e/.e2e.yaml
 apps/web/e2e/.e2e.db*
 apps/web/test-results/
 apps/web/playwright-report/
@@ -63,4 +64,5 @@ tmp
 temp
 
 
+local.yaml
 local.db
