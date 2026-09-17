@@ -1,33 +1,36 @@
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
-	lint: {
-		ignorePatterns: [
-			"node_modules/**",
-			"**/node_modules/**",
-			"apps/web/.svelte-kit/**",
-			"apps/web/build/**",
-			"apps/web/.output/**",
-			"apps/server/dist/**",
-			"local.yaml",
-		],
-		options: {
-			typeAware: false,
-			typeCheck: false,
-		},
-	},
-	fmt: {
-		ignorePatterns: [
-			"node_modules/**",
-			"**/node_modules/**",
-			"apps/web/.svelte-kit/**",
-			"apps/web/build/**",
-			"apps/web/.output/**",
-			"apps/server/dist/**",
-			"local.yaml",
-		],
-		singleQuote: false,
-		semi: true,
-		sortPackageJson: true,
-	},
+  staged: {
+    "*": "vp check --fix",
+  },
+  lint: {
+    ignorePatterns: [
+      "node_modules/**",
+      "**/node_modules/**",
+      "apps/web/.svelte-kit/**",
+      "apps/web/build/**",
+      "apps/web/.output/**",
+      "apps/server/dist/**",
+      "local.yaml",
+    ],
+    options: {
+      typeAware: false,
+      typeCheck: false,
+    },
+  },
+  fmt: {
+    ignorePatterns: [
+      "node_modules/**",
+      "**/node_modules/**",
+      "apps/web/.svelte-kit/**",
+      "apps/web/build/**",
+      "apps/web/.output/**",
+      "apps/server/dist/**",
+      "local.yaml",
+    ],
+    singleQuote: false,
+    semi: true,
+    sortPackageJson: true,
+  },
 });

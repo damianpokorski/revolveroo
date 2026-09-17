@@ -17,3 +17,4 @@ if git diff --cached --name-only | grep -qE '^(apps/web/|packages/)'; then
 		exit 1
 	}
 fi
+vp staged
