@@ -1,6 +1,10 @@
 # CLAUDE.md
 
-Conventions for working on this repo, for both human contributors and Claude Code. This is a solo/personal-scale project (a self-hosted kiosk tab-rotation app) — keep recommendations here pragmatic, not enterprise-heavy. For features, getting-started steps, and the scripts table, see `README.md`; this file focuses on SDLC conventions instead and shouldn't duplicate that content.
+Conventions for working on this repo, for both human contributors and Claude Code. This is a solo/personal-scale project (a self-hosted kiosk tab-rotation app) — keep recommendations here pragmatic, not enterprise-heavy. For running the app from source, project structure, and the scripts table, see `CONTRIBUTING.md`; for features and getting-started steps, see `README.md`; this file focuses on SDLC conventions instead and shouldn't duplicate that content.
+
+## Claude Code: no git/GitHub write actions, ever
+
+Claude Code must never run `git commit`, `git push`, or any `gh` (GitHub CLI) command that changes remote or repo state (creating/merging/closing PRs or issues, tags, releases, branch push/delete, etc.) in this repo — no exceptions, and this stands even if a future request explicitly asks for it ("just commit this", "push it up", "open a PR"). Always stop once changes are staged (or a PR description/commit message is drafted) and hand off to the user to review and run those commands themselves. Read-only git/`gh` commands (`status`, `diff`, `log`, `show`, `gh pr view`, etc.) are fine. This is enforced at the permission level too, via `.claude/settings.json`'s `deny` list — the prose rule and the settings file should stay in sync if either changes.
 
 ## Architecture overview
 
@@ -32,7 +36,7 @@ Bun workspaces monorepo: a SvelteKit static SPA (`apps/web`) talks to a Bun-nati
 
 ## Linting & formatting
 
-Biome is the only linter/formatter (`biome.json`) — no ESLint, no Prettier. Don't add them. Use `bun run check` (biome check --write), `bun run lint` (`vp lint`), `bun run format` (`vp fmt`). A pre-commit hook already runs `vp check --fix` over staged files (wired via `bun run hooks:setup`); run that once after cloning if hooks aren't active. Svelte/Vue files intentionally disable a few rules (`useConst`, `useImportType`, unused-vars) since the Svelte compiler handles them differently — don't "fix" this by re-enabling them.
+Biome is the only linter/formatter (`biome.json`) — no ESLint, no Prettier. Don't add them. Use `bun run check` (biome check --write), `bun run lint` (`vp lint`), `bun run format` (`vp fmt`), `bun run staged` (`biome check --write --staged`, Biome's native staged-file flag). A pre-commit hook already runs `bun run staged` over staged files (wired via `bun run hooks:setup`, which points `core.hooksPath` at the committed `.vite-hooks/` scripts); run that once after cloning if hooks aren't active. Svelte/Vue files intentionally disable a few rules (`useConst`, `useImportType`, unused-vars) since the Svelte compiler handles them differently — don't "fix" this by re-enabling them.
 
 ## Unit testing
 
@@ -59,24 +63,29 @@ Biome is the only linter/formatter (`biome.json`) — no ESLint, no Prettier. Do
 
 `apps/web/playwright.config.ts`'s `webServer` config starts real server + web dev processes against a disposable YAML data file (`apps/web/e2e/.e2e.yaml`, path from `e2e/data-file-path.ts`); the server command wipes that file before calling `.listen()`, and the server's own boot sequence re-creates it with default data — Playwright's readiness check polls `/api/health` so specs never race server startup. Specs run serially (`workers: 1`) since they share one data file. Run via `bun run test:e2e` (`bun run test:e2e:install` once, to fetch Chromium). Reserve e2e coverage for flows that would be costly to break silently (data loss, broken rotation, broken persistence) — don't expand it to every UI state.
 
-## Snapshot & screenshot / visual regression testing (recommended)
+## Snapshot & screenshot / visual regression testing
 
-Use Playwright's built-in `toHaveScreenshot()` rather than a separate service (Chromatic, Percy, etc.) — no existing visual tooling, and it avoids adding an external/paid dependency to a personal project. Baselines are just PNGs committed to the repo.
+Playwright's built-in `toHaveScreenshot()` rather than a separate service (Chromatic, Percy, etc.) — no external/paid dependency for a personal project. Baselines are PNGs committed to the repo, generated/updated locally via `bun run test:e2e:visual:update` and reviewed by hand before committing.
 
-- **Coverage**: kiosk view (default state, and one non-default state such as mid-rotation or with a query-param condition applied), settings page (empty and populated), and one form-open state (to catch styling regressions in the hand-rolled CSS).
-- **Flakiness mitigations**: disable animations/transitions during tests (e.g. `page.emulateMedia({ reducedMotion: "reduce" })`, relevant given the rotation progress bar); wait on `document.fonts.ready` before snapshotting, or pin fonts; run in Playwright's official Linux container so CI and local baselines render identically; use a diff-pixel tolerance rather than pixel-perfect matching; only commit Linux baselines since CI always runs Linux.
+- **Specs**: `apps/web/e2e/visual-kiosk.spec.ts` (kiosk default state, and one non-default state — mid-rotation or a query-param condition applied) and `apps/web/e2e/visual-settings.spec.ts` (Settings empty state, populated state, and one form-open state, to catch styling regressions in the hand-rolled CSS). Matched by the `*visual*.spec.ts` glob.
+- **Flakiness mitigations**: `page.emulateMedia({ reducedMotion: "reduce" })` (relevant given the rotation progress bar); wait on `document.fonts.ready` before snapshotting; `maxDiffPixelRatio: 0.02` tolerance rather than pixel-perfect matching; only commit Linux baselines since CI always runs Linux — regenerate locally in a Linux environment (or CI) if your machine renders differently.
+- **Gated at commit time**: `.vite-hooks/pre-commit` runs `bun run test:e2e:visual` whenever a staged file is under `apps/web/` or `packages/`, and blocks the commit on any diff or missing baseline. To accept an intentional UI change: `bun run test:e2e:visual:update`, review the new PNGs, `git add` them, and commit again.
+- **CI**: no separate job — the visual specs run as part of the existing `bun run test:e2e` step in `ci.yml`, as a redundant check against the pre-commit gate.
+- **Scripts**: `test:e2e:visual` (`playwright test visual`) and `test:e2e:visual:update` (`playwright test visual --update-snapshots`) in `apps/web/package.json`, mirrored at the root via `vp run --filter web`.
 
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on push to `main` and on pull requests, as a single sequential job (deliberately not split into a matrix or multiple parallel jobs for a project this size):
-1. Checkout, set up Bun pinned to `1.3.14` (matches `packageManager`/`mise.toml`).
+1. Checkout, read the Bun version out of `mise.toml` via `scripts/mise-tool-version.sh` (the single source of truth), set up that Bun version, then run `bun run check-versions` (`scripts/check-tool-versions.sh`) to fail fast if `package.json`'s `packageManager` or the Dockerfile's `oven/bun:` pin have drifted from `mise.toml`.
 2. Cache the Bun install cache and Playwright browser binaries (keyed on `bun.lock` / `apps/web/package.json`).
 3. `bun install --frozen-lockfile`, then `bun run fonts:setup` (self-hosted Nerd Font needed before both build and e2e).
 4. `bun run check-types`, `bun run lint`, `bun run test` (root `"test": "vp run -r test"` — currently exercises `apps/server`'s `bun:test` suite; will pick up more workspaces automatically as they add their own `test` script), `bun run build`.
-5. Install Playwright's Chromium (`--with-deps`, since GitHub-hosted runners have sudo) and run `bun run test:e2e`; upload the Playwright report as an artifact on failure.
+5. Install Playwright's Chromium (`--with-deps`, since GitHub-hosted runners have sudo) and run `bun run test:e2e`; upload the Playwright report as an artifact on failure. This also runs the visual-regression specs (see the section above) — Playwright picks up all specs by default, so no separate step is needed.
 6. Build the Docker image and smoke-test it: run the container, poll `/api/health` until healthy (or fail after ~30s), then tear the container down.
 
-There's no visual-regression job yet — see the section above.
+Third-party actions are pinned to full commit SHAs (with a version comment) rather than tags — `scripts/mise-tool-version.sh` and `scripts/check-tool-versions.sh` are plain, repo-agnostic scripts kept in sync with `.github/workflows/ci.yml` and `.github/workflows/release.yml`, both of which read the same `mise.toml`. A `concurrency` group cancels superseded runs on the same ref.
+
+`.github/workflows/release.yml` is a separate workflow — see "Releases & versioning" below.
 
 ## Dockerization
 
@@ -87,6 +96,19 @@ The Dockerfile has a `HEALTHCHECK` instruction that polls the server's `/api/hea
 A couple of notes:
 - When adding a new workspace or a `packages/*` with runtime deps, remember to add corresponding `COPY` lines for its `package.json` (deps stage) and its `node_modules`/source (runtime stage) — the Dockerfile doesn't auto-discover workspaces.
 - Don't add docker-compose. Local dev already has a lower-friction path via `bun run dev` (the data file needs no separate service to start), and the existing `docker`/`docker:stop` scripts already cover testing the production image locally. Revisit only if a second dependent service is introduced.
+
+## Releases & versioning
+
+Commits must follow [Conventional Commits](https://www.conventionalcommits.org/) (Angular-derived: `feat:`, `fix:`, `chore:`, `docs:`, etc., optionally scoped like `feat(tabs): ...`) — this is what drives automated versioning, so it's enforced, not just a style preference.
+
+- **Enforcement is local, via `vp`'s built-in git hook dispatcher** (`.vite-hooks/`) — not husky or lefthook. This repo already has a hook manager through the `vp` task runner (`vp config`), so adding a second one would be redundant. Run `bun run hooks:setup` once per clone to install it.
+  - `.vite-hooks/pre-commit` runs `bun run staged` (Biome) and the conditional visual-regression gate described above.
+  - `.vite-hooks/commit-msg` runs `bunx commitlint --edit "$1"` against `commitlint.config.js` (`@commitlint/config-conventional`, no repo-specific scope enum).
+  - Both scripts are project-owned and committed; the generated dispatcher internals under `.vite-hooks/_` are gitignored and regenerated by `vp config`.
+- **Versioning is fully automated by [semantic-release](https://semantic-release.gitbook.io/)** (`.releaserc.json`), triggered by `.github/workflows/release.yml` once `.github/workflows/ci.yml` passes on `main`. It computes the next version from commits since the last release, tags the commit, and publishes a GitHub Release with generated notes — then a second job builds the Dockerfile and pushes `ghcr.io/damianpokorski/revolveroo-draft:<version>` + `:latest`.
+- **`package.json` has no `"version"` field, and it should stay that way** — this is a self-hosted app deployed as a Docker image, not an npm package. Version lives only as the git tag / GitHub Release / Docker tag. `@semantic-release/npm` is deliberately not in the plugin list.
+- **There is no committed `CHANGELOG.md`** — release notes live only on the GitHub Releases page, published via `@semantic-release/github` (a GitHub API call, not a git push).
+- Run `bun run release:dry` locally to sanity-check `.releaserc.json` and see how the current commit history would be classified, without publishing anything.
 
 ## New feature checklist
 

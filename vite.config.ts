@@ -30,7 +30,4 @@ export default defineConfig({
 		semi: true,
 		sortPackageJson: true,
 	},
-	staged: {
-		"*.{js,ts,jsx,tsx,vue,svelte,json,jsonc,css,md}": "vp check --fix",
-	},
 });

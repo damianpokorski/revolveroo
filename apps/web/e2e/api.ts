@@ -51,3 +51,32 @@ export async function getConfig(request: APIRequestContext): Promise<Config> {
 	const res = await request.get(`${API_BASE}/config`);
 	return res.json();
 }
+
+// Full tab shape (beyond SeededTab's subset), used by tests that need to back up and
+// restore seeded tabs around a destructive operation (e.g. an empty-state screenshot).
+export async function fetchTabsRaw(
+	request: APIRequestContext,
+): Promise<Record<string, unknown>[]> {
+	const res = await request.get(`${API_BASE}/tabs`);
+	return res.json();
+}
+
+export async function deleteTab(request: APIRequestContext, id: string) {
+	const res = await request.delete(`${API_BASE}/tabs/${id}`);
+	if (!res.ok()) {
+		throw new Error(
+			`DELETE /tabs/${id} failed: ${res.status()} ${await res.text()}`,
+		);
+	}
+}
+
+export async function createTab(
+	request: APIRequestContext,
+	body: Record<string, unknown>,
+) {
+	const { id: _id, ...rest } = body;
+	const res = await request.post(`${API_BASE}/tabs`, { data: rest });
+	if (!res.ok()) {
+		throw new Error(`POST /tabs failed: ${res.status()} ${await res.text()}`);
+	}
+}
