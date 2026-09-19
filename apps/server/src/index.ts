@@ -1,7 +1,9 @@
 import { cors } from "@elysiajs/cors";
 import staticPlugin from "@elysiajs/static";
 import Elysia from "elysia";
+import { TabsRepository } from "./db/TabsRepository";
 import { router } from "./router";
+import { runtimeState } from "./runtime/RuntimeState";
 import { store } from "./store/YamlStore";
 
 // Fatal on failure: unlike the old SQLite `db:push` setup, there's no "limp along
@@ -9,6 +11,7 @@ import { store } from "./store/YamlStore";
 // server has nothing to serve.
 await store.load();
 store.startWatching();
+runtimeState.startHealthProbeLoop(new TabsRepository());
 
 let fullstack = new Elysia({});
 

@@ -29,6 +29,15 @@ async function waitFor(
 	}
 }
 
+const sampleTabData = {
+	url: "https://example.com",
+	inLoop: true,
+	displays: null,
+	windows: null,
+	customDuration: null,
+	icon: null,
+};
+
 let dir: string;
 let filePath: string;
 
@@ -52,12 +61,14 @@ describe("load", () => {
 
 		// Assert
 		expect(store.listTabs().length).toBe(8);
-		expect(store.listTimeRanges().length).toBe(3);
+		expect(store.listWindows().length).toBe(3);
+		expect(store.listDisplays().length).toBe(1);
 		expect(store.getConfig()).toEqual({
 			playbackInterval: 5000,
 			autoplayEnabled: true,
 			theme: "mocha",
 			tabTransition: "crossfade",
+			kioskControls: "auto",
 		});
 		const written = await readFile(filePath, "utf8");
 		expect(written).toContain("dashboard");
@@ -71,11 +82,13 @@ describe("load", () => {
 			"  autoplayEnabled: false",
 			"  theme: latte",
 			"  tabTransition: none",
+			"  kioskControls: expanded",
+			"displays: {}",
+			"windows: {}",
 			"tabs:",
 			"  only-tab:",
 			"    title: Only",
 			"    url: https://example.com",
-			"timeRanges: {}",
 			"",
 		].join("\n");
 		await writeFile(filePath, text, "utf8");
@@ -98,6 +111,57 @@ describe("load", () => {
 		// Act & Assert
 		await expect(store.load()).rejects.toThrow();
 	});
+
+	test("migrates an old-shape file (conditions/hiddenFromLoop/daysOfWeek) on load and rewrites the file", async () => {
+		// Arrange
+		const oldShape = [
+			"config:",
+			"  playbackInterval: 5000",
+			"  autoplayEnabled: true",
+			"  theme: mocha",
+			"  tabTransition: crossfade",
+			"timeRanges:",
+			"  business-hours:",
+			"    name: Business hours",
+			"    startTime: '09:00'",
+			"    endTime: '17:00'",
+			"    daysOfWeek: [1, 2, 3, 4, 5]",
+			"tabs:",
+			"  office-lights:",
+			"    title: Office lights",
+			"    url: https://example.com/office-lights",
+			"    hiddenFromLoop: false",
+			"    conditions:",
+			"      - type: queryParams",
+			"        queryParams: { room: office }",
+			"  trello:",
+			"    title: Trello",
+			"    url: https://example.com/trello",
+			"    hiddenFromLoop: true",
+			"    conditions: null",
+			"",
+		].join("\n");
+		await writeFile(filePath, oldShape, "utf8");
+		const store = new YamlStore(filePath);
+
+		// Act
+		await store.load();
+
+		// Assert
+		const displays = store.listDisplays();
+		expect(displays).toHaveLength(1);
+		const officeDisplay = displays.find((d) => d.name === "Office");
+		expect(officeDisplay).toBeDefined();
+		const officeDisplayId = officeDisplay?.id ?? "";
+		const officeLights = store.getTab("office-lights");
+		expect(officeLights?.inLoop).toBe(true);
+		expect(officeLights?.displays).toEqual([officeDisplayId]);
+		const trello = store.getTab("trello");
+		expect(trello?.inLoop).toBe(false);
+		const onDisk = await readFile(filePath, "utf8");
+		expect(onDisk).not.toContain("hiddenFromLoop");
+		expect(onDisk).not.toContain("daysOfWeek");
+	});
 });
 
 describe("mutations", () => {
@@ -109,11 +173,7 @@ describe("mutations", () => {
 		// Act
 		const tab = await store.createTab({
 			title: "Brand New Tab",
-			url: "https://example.com",
-			hiddenFromLoop: false,
-			conditions: null,
-			customDuration: null,
-			icon: null,
+			...sampleTabData,
 		});
 
 		// Assert
@@ -127,14 +187,7 @@ describe("mutations", () => {
 		// Arrange
 		const store = new YamlStore(filePath);
 		await store.load();
-		const data = {
-			title: "Duplicate",
-			url: "https://example.com",
-			hiddenFromLoop: false,
-			conditions: null,
-			customDuration: null,
-			icon: null,
-		};
+		const data = { title: "Duplicate", ...sampleTabData };
 
 		// Act
 		const first = await store.createTab(data);
@@ -149,14 +202,7 @@ describe("mutations", () => {
 		// Arrange
 		const store = new YamlStore(filePath);
 		await store.load();
-		const tab = await store.createTab({
-			title: "Original",
-			url: "https://example.com",
-			hiddenFromLoop: false,
-			conditions: null,
-			customDuration: null,
-			icon: null,
-		});
+		const tab = await store.createTab({ title: "Original", ...sampleTabData });
 
 		// Act
 		const updated = await store.updateTab(tab.id, { title: "Renamed" });
@@ -183,14 +229,7 @@ describe("mutations", () => {
 		// Arrange
 		const store = new YamlStore(filePath);
 		await store.load();
-		const tab = await store.createTab({
-			title: "Removable",
-			url: "https://example.com",
-			hiddenFromLoop: false,
-			conditions: null,
-			customDuration: null,
-			icon: null,
-		});
+		const tab = await store.createTab({ title: "Removable", ...sampleTabData });
 
 		// Act
 		const deleted = await store.deleteTab(tab.id);
@@ -237,18 +276,57 @@ describe("mutations", () => {
 		await store.load();
 
 		// Act
-		await store.createTab({
-			title: "Atomic",
-			url: "https://example.com",
-			hiddenFromLoop: false,
-			conditions: null,
-			customDuration: null,
-			icon: null,
-		});
+		await store.createTab({ title: "Atomic", ...sampleTabData });
 
 		// Assert
 		const entries = readdirSync(dirname(filePath));
 		expect(entries.some((name) => name.includes(".tmp-"))).toBe(false);
+	});
+
+	test("createWindow, updateWindow and deleteWindow round-trip without daysOfWeek", async () => {
+		// Arrange
+		const store = new YamlStore(filePath);
+		await store.load();
+
+		// Act
+		const created = await store.createWindow({
+			name: "Evening",
+			startTime: "18:00",
+			endTime: "22:00",
+		});
+		const updated = await store.updateWindow(created.id, { endTime: "23:00" });
+		const deleted = await store.deleteWindow(created.id);
+
+		// Assert
+		expect(created.id).toBe("evening");
+		expect(
+			(created as unknown as { daysOfWeek?: unknown }).daysOfWeek,
+		).toBeUndefined();
+		expect(updated?.endTime).toBe("23:00");
+		expect(deleted?.id).toBe(created.id);
+		expect(store.getWindow(created.id)).toBeUndefined();
+	});
+
+	test("createDisplay, updateDisplay and deleteDisplay round-trip", async () => {
+		// Arrange
+		const store = new YamlStore(filePath);
+		await store.load();
+
+		// Act
+		const created = await store.createDisplay({
+			name: "Hallway",
+			match: { kind: "queryParam", key: "room", value: "hallway" },
+		});
+		const updated = await store.updateDisplay(created.id, {
+			name: "Upstairs Hallway",
+		});
+		const deleted = await store.deleteDisplay(created.id);
+
+		// Assert
+		expect(created.id).toBe("hallway");
+		expect(updated?.name).toBe("Upstairs Hallway");
+		expect(deleted?.id).toBe(created.id);
+		expect(store.getDisplay(created.id)).toBeUndefined();
 	});
 });
 
@@ -257,14 +335,7 @@ describe("concurrency", () => {
 		// Arrange
 		const store = new YamlStore(filePath);
 		await store.load();
-		const data = {
-			title: "Concurrent",
-			url: "https://example.com",
-			hiddenFromLoop: false,
-			conditions: null,
-			customDuration: null,
-			icon: null,
-		};
+		const data = { title: "Concurrent", ...sampleTabData };
 
 		// Act
 		const results = await Promise.all(
@@ -298,11 +369,13 @@ describe("external changes (watcher)", () => {
 			"  autoplayEnabled: true",
 			"  theme: mocha",
 			"  tabTransition: crossfade",
+			"  kioskControls: auto",
+			"displays: {}",
+			"windows: {}",
 			"tabs:",
 			"  extra-tab:",
 			"    title: Extra",
 			"    url: https://example.com",
-			"timeRanges: {}",
 			"",
 		].join("\n");
 
@@ -322,14 +395,7 @@ describe("external changes (watcher)", () => {
 		store.startWatching();
 
 		// Act
-		await store.createTab({
-			title: "Self Write",
-			url: "https://example.com",
-			hiddenFromLoop: false,
-			conditions: null,
-			customDuration: null,
-			icon: null,
-		});
+		await store.createTab({ title: "Self Write", ...sampleTabData });
 		// Give the watcher's debounce window a chance to fire, if it were going to.
 		await new Promise((resolve) => setTimeout(resolve, 400));
 
@@ -341,14 +407,7 @@ describe("external changes (watcher)", () => {
 		// Arrange
 		store = new YamlStore(filePath);
 		await store.load();
-		await store.createTab({
-			title: "Good Tab",
-			url: "https://example.com",
-			hiddenFromLoop: false,
-			conditions: null,
-			customDuration: null,
-			icon: null,
-		});
+		await store.createTab({ title: "Good Tab", ...sampleTabData });
 		store.startWatching();
 
 		// Act — break "good-tab" (missing required url) and add a tab that was
@@ -359,12 +418,14 @@ describe("external changes (watcher)", () => {
 			"  autoplayEnabled: true",
 			"  theme: mocha",
 			"  tabTransition: crossfade",
+			"  kioskControls: auto",
+			"displays: {}",
+			"windows: {}",
 			"tabs:",
 			"  good-tab:",
 			"    title: Good Tab",
 			"  never-valid:",
 			"    title: Missing URL",
-			"timeRanges: {}",
 			"",
 		].join("\n");
 		await writeFile(filePath, broken, "utf8");

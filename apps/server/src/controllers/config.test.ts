@@ -23,6 +23,7 @@ const sampleConfig = {
 	autoplayEnabled: true,
 	theme: "mocha",
 	tabTransition: "crossfade",
+	kioskControls: "auto",
 };
 
 beforeEach(() => {
@@ -55,6 +56,7 @@ describe("PUT /config", () => {
 			autoplayEnabled: true,
 			theme: "mocha",
 			tabTransition: "crossfade",
+			kioskControls: "auto",
 		};
 
 		// Act
@@ -80,6 +82,7 @@ describe("PUT /config", () => {
 			autoplayEnabled: false,
 			theme: "mocha",
 			tabTransition: "crossfade",
+			kioskControls: "auto",
 		};
 		updateMock.mockResolvedValue(disabledConfig);
 		const requestBody = {
@@ -87,6 +90,7 @@ describe("PUT /config", () => {
 			autoplayEnabled: false,
 			theme: "mocha",
 			tabTransition: "crossfade",
+			kioskControls: "auto",
 		};
 
 		// Act

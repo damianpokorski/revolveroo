@@ -17,3 +17,24 @@ describe("notifyDataChanged", () => {
 		expect(received).toBe(true);
 	});
 });
+
+describe("heartbeat event", () => {
+	test("is a distinct event name from 'change' on the same emitter", () => {
+		// Arrange
+		let changeReceived = false;
+		let heartbeatReceived = false;
+		dataEvents.once("change", () => {
+			changeReceived = true;
+		});
+		dataEvents.once("heartbeat", () => {
+			heartbeatReceived = true;
+		});
+
+		// Act
+		dataEvents.emit("heartbeat", { displayId: "office" });
+
+		// Assert
+		expect(heartbeatReceived).toBe(true);
+		expect(changeReceived).toBe(false);
+	});
+});

@@ -8,16 +8,23 @@ import type { ZodType } from "zod";
 import { notifyDataChanged } from "../events";
 import {
 	DEFAULT_CONFIG,
+	DEFAULT_DISPLAYS,
 	DEFAULT_TABS,
-	DEFAULT_TIME_RANGES,
+	DEFAULT_WINDOWS,
 } from "./defaultData";
-import { ConfigSchema, TabEntrySchema, TimeRangeEntrySchema } from "./schema";
+import { migrateRawData } from "./migrate";
+import {
+	ConfigSchema,
+	DisplayEntrySchema,
+	TabEntrySchema,
+	TimeWindowEntrySchema,
+} from "./schema";
 import { slugify, uniqueSlug } from "./slug";
-import type { Config, Tab, TimeRange } from "./types";
+import type { Config, Display, Tab, TimeWindow } from "./types";
 
 const DEBOUNCE_MS = 250;
 
-type Section = "config" | "tabs" | "timeRanges";
+type Section = "config" | "tabs" | "windows" | "displays";
 
 // Serializes every mutation to the store — both API-triggered writes and
 // watcher-triggered reloads — since they all touch the same in-memory Document
@@ -55,7 +62,8 @@ export class YamlStore {
 	private doc: Document = new Document({});
 	private config: Config = { ...DEFAULT_CONFIG };
 	private tabs = new Map<string, Tab>();
-	private timeRanges = new Map<string, TimeRange>();
+	private windows = new Map<string, TimeWindow>();
+	private displays = new Map<string, Display>();
 	private lastWrittenHash = "";
 	private watcher: FSWatcher | undefined;
 	private debounceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -69,11 +77,15 @@ export class YamlStore {
 			if (!(await this.fileExists())) {
 				this.config = { ...DEFAULT_CONFIG };
 				this.tabs = new Map(DEFAULT_TABS.map((tab) => [tab.id, tab]));
-				this.timeRanges = new Map(DEFAULT_TIME_RANGES.map((tr) => [tr.id, tr]));
+				this.windows = new Map(DEFAULT_WINDOWS.map((w) => [w.id, w]));
+				this.displays = new Map(DEFAULT_DISPLAYS.map((d) => [d.id, d]));
 				this.doc = new Document({
 					config: DEFAULT_CONFIG,
-					timeRanges: Object.fromEntries(
-						DEFAULT_TIME_RANGES.map((tr) => [tr.id, stripId(tr)]),
+					displays: Object.fromEntries(
+						DEFAULT_DISPLAYS.map((d) => [d.id, stripId(d)]),
+					),
+					windows: Object.fromEntries(
+						DEFAULT_WINDOWS.map((w) => [w.id, stripId(w)]),
 					),
 					tabs: Object.fromEntries(
 						DEFAULT_TABS.map((tab) => [tab.id, stripId(tab)]),
@@ -94,8 +106,10 @@ export class YamlStore {
 			this.doc = parsedDoc;
 			this.config = { ...DEFAULT_CONFIG };
 			this.tabs = new Map();
-			this.timeRanges = new Map();
+			this.windows = new Map();
+			this.displays = new Map();
 			this.applyRawData(parsedDoc.toJS());
+			if (this.migrateIfNeeded()) await this.persist();
 		});
 	}
 
@@ -132,12 +146,20 @@ export class YamlStore {
 		return this.tabs.get(id);
 	}
 
-	listTimeRanges(): TimeRange[] {
-		return [...this.timeRanges.values()];
+	listWindows(): TimeWindow[] {
+		return [...this.windows.values()];
 	}
 
-	getTimeRange(id: string): TimeRange | undefined {
-		return this.timeRanges.get(id);
+	getWindow(id: string): TimeWindow | undefined {
+		return this.windows.get(id);
+	}
+
+	listDisplays(): Display[] {
+		return [...this.displays.values()];
+	}
+
+	getDisplay(id: string): Display | undefined {
+		return this.displays.get(id);
 	}
 
 	async updateConfig(patch: Partial<Config>): Promise<Config> {
@@ -215,41 +237,81 @@ export class YamlStore {
 		});
 	}
 
-	async createTimeRange(data: Omit<TimeRange, "id">): Promise<TimeRange> {
+	async createWindow(data: Omit<TimeWindow, "id">): Promise<TimeWindow> {
 		return this.mutex.run(async () => {
-			const id = uniqueSlug(slugify(data.name), this.timeRanges.keys());
-			const timeRange: TimeRange = { id, ...data };
-			const timeRangesNode = this.getOrCreateSection("timeRanges");
-			timeRangesNode.set(id, this.doc.createNode(stripId(timeRange)));
-			this.timeRanges.set(id, timeRange);
+			const id = uniqueSlug(slugify(data.name), this.windows.keys());
+			const window: TimeWindow = { id, ...data };
+			const windowsNode = this.getOrCreateSection("windows");
+			windowsNode.set(id, this.doc.createNode(stripId(window)));
+			this.windows.set(id, window);
 			await this.persist();
-			return timeRange;
+			return window;
 		});
 	}
 
-	async updateTimeRange(
+	async updateWindow(
 		id: string,
-		patch: Partial<Omit<TimeRange, "id">>,
-	): Promise<TimeRange | undefined> {
+		patch: Partial<Omit<TimeWindow, "id">>,
+	): Promise<TimeWindow | undefined> {
 		return this.mutex.run(async () => {
-			const existing = this.timeRanges.get(id);
+			const existing = this.windows.get(id);
 			if (!existing) return undefined;
-			const updated: TimeRange = { ...existing, ...patch, id };
-			const timeRangesNode = this.getOrCreateSection("timeRanges");
-			timeRangesNode.set(id, this.doc.createNode(stripId(updated)));
-			this.timeRanges.set(id, updated);
+			const updated: TimeWindow = { ...existing, ...patch, id };
+			const windowsNode = this.getOrCreateSection("windows");
+			windowsNode.set(id, this.doc.createNode(stripId(updated)));
+			this.windows.set(id, updated);
 			await this.persist();
 			return updated;
 		});
 	}
 
-	async deleteTimeRange(id: string): Promise<TimeRange | undefined> {
+	async deleteWindow(id: string): Promise<TimeWindow | undefined> {
 		return this.mutex.run(async () => {
-			const existing = this.timeRanges.get(id);
+			const existing = this.windows.get(id);
 			if (!existing) return undefined;
-			const timeRangesNode = this.getOrCreateSection("timeRanges");
-			timeRangesNode.delete(id);
-			this.timeRanges.delete(id);
+			const windowsNode = this.getOrCreateSection("windows");
+			windowsNode.delete(id);
+			this.windows.delete(id);
+			await this.persist();
+			return existing;
+		});
+	}
+
+	async createDisplay(data: Omit<Display, "id">): Promise<Display> {
+		return this.mutex.run(async () => {
+			const id = uniqueSlug(slugify(data.name), this.displays.keys());
+			const display: Display = { id, ...data };
+			const displaysNode = this.getOrCreateSection("displays");
+			displaysNode.set(id, this.doc.createNode(stripId(display)));
+			this.displays.set(id, display);
+			await this.persist();
+			return display;
+		});
+	}
+
+	async updateDisplay(
+		id: string,
+		patch: Partial<Omit<Display, "id">>,
+	): Promise<Display | undefined> {
+		return this.mutex.run(async () => {
+			const existing = this.displays.get(id);
+			if (!existing) return undefined;
+			const updated: Display = { ...existing, ...patch, id };
+			const displaysNode = this.getOrCreateSection("displays");
+			displaysNode.set(id, this.doc.createNode(stripId(updated)));
+			this.displays.set(id, updated);
+			await this.persist();
+			return updated;
+		});
+	}
+
+	async deleteDisplay(id: string): Promise<Display | undefined> {
+		return this.mutex.run(async () => {
+			const existing = this.displays.get(id);
+			if (!existing) return undefined;
+			const displaysNode = this.getOrCreateSection("displays");
+			displaysNode.delete(id);
+			this.displays.delete(id);
 			await this.persist();
 			return existing;
 		});
@@ -301,20 +363,50 @@ export class YamlStore {
 			}
 			this.doc = parsedDoc;
 			this.applyRawData(parsedDoc.toJS());
-			this.lastWrittenHash = hash;
+			const migrated = this.migrateIfNeeded();
+			if (migrated) {
+				await this.persist();
+			} else {
+				this.lastWrittenHash = hash;
+			}
 			notifyDataChanged();
 		});
+	}
+
+	/**
+	 * Detects and applies the pre-Display/TimeWindow YAML shape (see
+	 * store/migrate.ts). Replaces `this.doc` wholesale rather than patching the
+	 * comment-preserving Document node-by-node, since this is a one-time structural
+	 * rename/restructure, not an ordinary field edit — hand-added YAML comments are
+	 * lost on the one migrating load only, not on any subsequent edit. Returns
+	 * whether a migration actually ran, so the caller knows whether to persist.
+	 */
+	private migrateIfNeeded(): boolean {
+		const { data, changed } = migrateRawData(this.doc.toJS() ?? {});
+		if (!changed) return false;
+		this.doc = new Document(data);
+		this.applyRawData(data);
+		console.log(
+			`Migrated ${this.filePath} to the Display/TimeWindow data model`,
+		);
+		return true;
 	}
 
 	private applyRawData(raw: unknown): void {
 		const obj =
 			raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
 		this.tabs = this.parseEntries(obj.tabs, TabEntrySchema, this.tabs, "tab");
-		this.timeRanges = this.parseEntries(
-			obj.timeRanges,
-			TimeRangeEntrySchema,
-			this.timeRanges,
-			"time range",
+		this.windows = this.parseEntries(
+			obj.windows,
+			TimeWindowEntrySchema,
+			this.windows,
+			"time window",
+		);
+		this.displays = this.parseEntries(
+			obj.displays,
+			DisplayEntrySchema,
+			this.displays,
+			"display",
 		);
 		this.config = this.parseConfig(obj.config);
 	}

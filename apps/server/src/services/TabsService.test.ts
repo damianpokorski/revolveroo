@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
+import type { DisplaysRepository } from "../db/DisplaysRepository";
 import type { Tab, TabsRepository } from "../db/TabsRepository";
+import type { WindowsRepository } from "../db/WindowsRepository";
 import { BadRequestError, NotFoundError } from "../errors";
 import { TabsService } from "./TabsService";
 
@@ -27,20 +29,38 @@ const fakeRepo = {
 	reorder: reorderMock,
 } as unknown as TabsRepository;
 
-const service = new TabsService(fakeRepo);
+const displayFindByIdMock = mock();
+const fakeDisplaysRepo = {
+	findById: displayFindByIdMock,
+} as unknown as DisplaysRepository;
+
+const windowFindByIdMock = mock();
+const fakeWindowsRepo = {
+	findById: windowFindByIdMock,
+} as unknown as WindowsRepository;
+
+const service = new TabsService(fakeRepo, fakeDisplaysRepo, fakeWindowsRepo);
 
 const sampleTab: Tab = {
 	id: "example",
 	title: "Example",
 	url: "https://example.com",
-	hiddenFromLoop: false,
-	conditions: null,
+	inLoop: true,
+	displays: null,
+	windows: null,
 	customDuration: null,
 	icon: null,
 };
 
 beforeEach(() => {
 	for (const m of allRepoMocks) m.mockReset();
+	displayFindByIdMock.mockReset();
+	windowFindByIdMock.mockReset();
+	displayFindByIdMock.mockResolvedValue({ id: "office", name: "Office" });
+	windowFindByIdMock.mockResolvedValue({
+		id: "business-hours",
+		name: "Business hours",
+	});
 });
 
 describe("getAll", () => {
@@ -93,12 +113,43 @@ describe("create", () => {
 		expect(createMock).toHaveBeenCalledWith({
 			title: "Example",
 			url: "https://example.com",
-			hiddenFromLoop: false,
-			conditions: null,
+			inLoop: true,
+			displays: null,
+			windows: null,
 			customDuration: null,
 			icon: null,
 		});
 		expect(result).toEqual(sampleTab);
+	});
+
+	test("throws BadRequestError when a display id doesn't resolve", async () => {
+		// Arrange
+		displayFindByIdMock.mockResolvedValue(undefined);
+
+		// Act & Assert
+		await expect(
+			service.create({
+				title: "Example",
+				url: "https://example.com",
+				displays: ["bogus"],
+			}),
+		).rejects.toThrow(BadRequestError);
+		expect(createMock).not.toHaveBeenCalled();
+	});
+
+	test("throws BadRequestError when a window id doesn't resolve", async () => {
+		// Arrange
+		windowFindByIdMock.mockResolvedValue(undefined);
+
+		// Act & Assert
+		await expect(
+			service.create({
+				title: "Example",
+				url: "https://example.com",
+				windows: [{ windowId: "bogus", days: [] }],
+			}),
+		).rejects.toThrow(BadRequestError);
+		expect(createMock).not.toHaveBeenCalled();
 	});
 });
 

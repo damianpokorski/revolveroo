@@ -1,46 +1,102 @@
 <script lang="ts">
 import { onDestroy, onMount } from "svelte";
-import { createApi, resolveServerUrl } from "$lib/api";
-import { type Tab, toTab } from "$lib/tabs";
+import {
+	createApi,
+	type DisplayData,
+	resolveServerUrl,
+	type TabData,
+	type TabHealthData,
+	type WindowData,
+} from "$lib/api";
+import Icon from "$lib/icons/Icon.svelte";
 import { DEFAULT_TAB_TRANSITION, type TabTransition } from "$lib/tabTransition";
 import { applyTheme } from "$lib/theme";
+import { resolveDisplay, visible } from "$lib/visibility";
 
-// Fetch tabs from API, reconstruct conditions, then filter
-let tabs: Tab[] = [];
+const api = createApi();
+
+const PAINT_TIMEOUT_MS = 15_000;
+const HEARTBEAT_INTERVAL_MS = 15_000;
+const FAILURE_RECHECK_LABEL_S = 60;
+const FAILURE_SKIP_COUNTDOWN_S = 3;
+const AUTO_HUD_TAB_THRESHOLD = 4;
+const SLIMLINE_COLLAPSE_MS = 8000;
+
+// --- Data ---
+let allTabsCount = $state(0);
+let tabs = $state<TabData[]>([]);
+let displays = $state<DisplayData[]>([]);
+let windowsById = $state(new Map<string, WindowData>());
+let displayId = $state<string | null>(null);
+let resolvedDisplay = $state<DisplayData | null>(null);
+let tabHealth = $state<TabHealthData>({});
+
+// --- Config ---
+let playbackInterval = $state(5000);
+let autoplayEnabled = $state(true);
+let tabTransition = $state<TabTransition>(DEFAULT_TAB_TRANSITION);
+let kioskControls = $state<"auto" | "slim" | "expanded">("auto");
+
 async function refreshData() {
-	const api = createApi();
-	const [tabsResult, configResult, timeRangesResult] = await Promise.all([
+	const [
+		tabsResult,
+		configResult,
+		windowsResult,
+		displaysResult,
+		healthResult,
+	] = await Promise.all([
 		api.api.tabs.get(),
 		api.api.config.get(),
-		api.api["time-ranges"].get(),
+		api.api.windows.get(),
+		api.api.displays.get(),
+		api.api.tabs.health.get(),
 	]);
+
 	if (tabsResult.error) {
 		console.error("Failed to load tabs", tabsResult.error);
+		registerFetchFailure();
 		return;
 	}
-	const timeRangesById = new Map(
-		(timeRangesResult.error ? [] : timeRangesResult.data).map((tr) => [
-			tr.id,
-			tr,
-		]),
+	registerFetchSuccess();
+
+	windowsById = new Map(
+		(windowsResult.error ? [] : windowsResult.data).map((w) => [w.id, w]),
 	);
-	tabs = tabsResult.data
-		.map((d) => toTab(d, timeRangesById))
-		.filter((tab) => tab.conditions?.every((c) => c.evaluator()) ?? true);
+	displays = displaysResult.error ? [] : displaysResult.data;
+	resolvedDisplay = resolveDisplay(displays, window.location);
+	displayId = resolvedDisplay?.id ?? null;
+	tabHealth = healthResult.error ? {} : healthResult.data;
+
+	allTabsCount = tabsResult.data.length;
+	const now = new Date();
+	tabs = tabsResult.data.filter((tab) =>
+		visible(tab, displayId, now, windowsById),
+	);
+
 	if (!configResult.error) {
 		playbackInterval = configResult.data.playbackInterval;
 		autoplayEnabled = configResult.data.autoplayEnabled;
 		applyTheme(configResult.data.theme);
 		tabTransition = configResult.data.tabTransition;
+		kioskControls = configResult.data.kioskControls;
 	}
 }
 onMount(refreshData);
 
-// Re-fetch tabs/config/time-ranges the instant they change on the server (e.g. an
-// edit made from another device's Settings page), so kiosk screens stay in sync
-// without a manual reload. The browser's EventSource auto-reconnects on its own.
+// Re-fetch tabs/config/displays/windows the instant they change on the server
+// (e.g. an edit made from another device's Settings page). "heartbeat" events
+// are a distinct SSE event this listener never subscribes to — reacting to them
+// here would reset every kiosk to tab 0 every ~15s (see events.ts / RuntimeState).
 onMount(() => {
 	const source = new EventSource(`${resolveServerUrl()}/api/events`);
+	source.addEventListener("open", () => {
+		sseConnected = true;
+		sseDisconnectedAt = null;
+	});
+	source.addEventListener("error", () => {
+		sseConnected = false;
+		if (sseDisconnectedAt === null) sseDisconnectedAt = Date.now();
+	});
 	source.addEventListener("change", async () => {
 		await refreshData();
 		if (tabs.length > 0) switchTab(0, { graceActive: false });
@@ -48,21 +104,56 @@ onMount(() => {
 	return () => source.close();
 });
 
-// --- Config ---
-let playbackInterval = 5000;
-let autoplayEnabled = true;
-let tabTransition: TabTransition = DEFAULT_TAB_TRANSITION;
-
 // --- UI state ---
-let menu = false;
-// Session-only pause/resume, only meaningful (and only surfaced in the menu) when
-// autoplay is enabled in settings.
-let autoplayRunning = true;
-let activeTabIndex = 0;
-let progressPercentage = 0;
-// True while the just-selected tab is running its one-time grace cycle
-// instead of its normal rotation interval.
-let graceActive = false;
+let menu = $state(false);
+let autoplayRunning = $state(true);
+let activeTabIndex = $state(0);
+let progressPercentage = $state(0);
+let graceActive = $state(false);
+let dimmed = $state(false);
+
+const activeTab = $derived(tabs[activeTabIndex]);
+const loopCount = $derived(tabs.filter((t) => t.inLoop).length);
+const baseHudMode = $derived(
+	kioskControls === "slim"
+		? "slimline"
+		: kioskControls === "expanded"
+			? "expanded"
+			: loopCount <= AUTO_HUD_TAB_THRESHOLD
+				? "expanded"
+				: "slimline",
+);
+let slimlineExpandedOverride = $state(false);
+let slimlineCollapseTimer: ReturnType<typeof setTimeout> | undefined;
+const hudMode = $derived(
+	baseHudMode === "slimline" && slimlineExpandedOverride
+		? "expanded"
+		: baseHudMode,
+);
+
+function tapSlimline() {
+	if (baseHudMode !== "slimline") return;
+	slimlineExpandedOverride = true;
+	if (slimlineCollapseTimer) clearTimeout(slimlineCollapseTimer);
+	slimlineCollapseTimer = setTimeout(() => {
+		slimlineExpandedOverride = false;
+	}, SLIMLINE_COLLAPSE_MS);
+}
+
+// --- Empty states (spec 8.4) ---
+const emptyVariant = $derived.by(
+	(): "nothing-configured" | "none-scheduled" | "all-failing" | null => {
+		if (allTabsCount === 0) return "nothing-configured";
+		if (tabs.length === 0) return "none-scheduled";
+		if (
+			tabs.length > 0 &&
+			tabs.every((t) => tabHealth[t.id]?.status === "fail")
+		) {
+			return "all-failing";
+		}
+		return null;
+	},
+);
 
 // --- Autoplay loop ---
 const FRAME = 1000 / 120;
@@ -70,40 +161,51 @@ const GRACE_PERIOD_MS = 8000;
 let progress = 0;
 let handle: ReturnType<typeof setInterval>;
 
-// --- Tab transition ---
-// Kept in sync with the 500ms hardcoded into the CSS transition durations below.
-const TAB_TRANSITION_MS = 500;
-// The tab index that's fading/sliding out, only non-null for the duration of the
-// transition — drives the `leaving` class so its outgoing animation can render
-// alongside the newly-active tab.
-let previousTabIndex: number | null = null;
-let transitionTimeoutHandle: ReturnType<typeof setTimeout> | undefined;
+function isTabSkippable(tab: TabData | undefined): boolean {
+	if (!tab) return true;
+	if (!tab.inLoop) return true;
+	if (tabHealth[tab.id]?.status === "fail") return true;
+	return false;
+}
+
+function nextPlayableIndex(from: number): number {
+	if (tabs.length === 0) return from;
+	let next = (from + 1) % tabs.length;
+	let guard = 0;
+	while (isTabSkippable(tabs[next]) && guard < tabs.length) {
+		next = (next + 1) % tabs.length;
+		guard++;
+	}
+	return next;
+}
 
 onMount(() => {
 	handle = setInterval(() => {
-		if (menu || !autoplayEnabled || !autoplayRunning) return;
+		if (menu || emptyVariant || activeTabFailing) return;
+		if (!autoplayEnabled || !autoplayRunning) return;
 		progress += FRAME;
-		// Grace fully replaces (doesn't extend) the tab's normal interval for one cycle.
 		const effectiveInterval = graceActive
 			? GRACE_PERIOD_MS
 			: (tabs[activeTabIndex]?.customDuration ?? playbackInterval);
 		progressPercentage = progress / effectiveInterval;
 		if (progress < effectiveInterval) return;
-		let next = (activeTabIndex + 1) % tabs.length;
-		while (tabs[next]?.hiddenFromLoop) next = (next + 1) % tabs.length;
-		switchTab(next, { graceActive: false });
+		switchTab(nextPlayableIndex(activeTabIndex), { graceActive: false });
 	}, FRAME);
 });
 
 onDestroy(() => {
 	clearInterval(handle);
 	clearTimeout(transitionTimeoutHandle);
+	clearInterval(heartbeatTimer);
+	clearTimeout(slimlineCollapseTimer);
+	clearInterval(bannerTimer);
 });
 
-// Single point of mutation for `activeTabIndex`, used by both autoplay advances and
-// manual pill clicks, so the crossfade/slide bookkeeping can't drift between the two.
-// Also resets the autoplay timer, so leftover progress from the previous tab can't
-// immediately trip the next switch.
+// --- Tab transition ---
+const TAB_TRANSITION_MS = 500;
+let previousTabIndex: number | null = $state(null);
+let transitionTimeoutHandle: ReturnType<typeof setTimeout> | undefined;
+
 function switchTab(
 	nextIndex: number,
 	{ graceActive: nextGrace }: { graceActive: boolean },
@@ -119,283 +221,557 @@ function switchTab(
 	progress = 0;
 	progressPercentage = 0;
 	graceActive = nextGrace;
+	failureCountdown = FAILURE_SKIP_COUNTDOWN_S;
+	sendHeartbeat();
 }
 
-// Even re-clicking the already-active tab restarts grace — there's no reason to
-// special-case that (switchTab itself skips the transition bookkeeping when the
-// index doesn't actually change).
 const selectTab = (i: number) => switchTab(i, { graceActive: true });
 
-// Fallback glyph (Nerd Font "fa-question") for pills when a tab has no icon set
-const QUESTION_MARK_ICON = "";
+const QUESTION_MARK_ICON = "";
+
+// --- Frame paint tracking (per tab, spec section 9) ---
+let frameStateByTab = $state<Record<string, "ok" | "error" | "timeout">>({});
+
+function trackFrame(node: HTMLIFrameElement, tabId: string) {
+	let settled = false;
+	const timeout = setTimeout(() => {
+		if (settled) return;
+		settled = true;
+		frameStateByTab[tabId] = "timeout";
+		if (tabs[activeTabIndex]?.id === tabId) sendHeartbeat();
+	}, PAINT_TIMEOUT_MS);
+	const onLoad = () => {
+		if (settled) return;
+		settled = true;
+		clearTimeout(timeout);
+		frameStateByTab[tabId] = "ok";
+		if (tabs[activeTabIndex]?.id === tabId) sendHeartbeat();
+	};
+	const onError = () => {
+		if (settled) return;
+		settled = true;
+		clearTimeout(timeout);
+		frameStateByTab[tabId] = "error";
+		if (tabs[activeTabIndex]?.id === tabId) sendHeartbeat();
+	};
+	node.addEventListener("load", onLoad);
+	node.addEventListener("error", onError);
+	return {
+		destroy() {
+			clearTimeout(timeout);
+			node.removeEventListener("load", onLoad);
+			node.removeEventListener("error", onError);
+		},
+	};
+}
+
+let reloadNonce = $state<Record<string, number>>({});
+function reloadActiveTab() {
+	if (!activeTab) return;
+	reloadNonce[activeTab.id] = (reloadNonce[activeTab.id] ?? 0) + 1;
+	frameStateByTab[activeTab.id] = "timeout";
+}
+
+// --- Heartbeat (spec section 9 — per-display SSE feeds Overview only) ---
+let heartbeatTimer: ReturnType<typeof setInterval>;
+function sendHeartbeat() {
+	if (!displayId) return;
+	const frameState = activeTab
+		? (frameStateByTab[activeTab.id] ?? "timeout")
+		: "timeout";
+	api.api.displays({ id: displayId }).heartbeat.post({
+		currentTabId: activeTab?.id ?? null,
+		frameState,
+		progressPercent: Math.round(progressPercentage * 100),
+	});
+}
+onMount(() => {
+	heartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
+});
+
+// --- Failure card (spec 8.3) ---
+const activeTabFailing = $derived.by(() => {
+	if (!activeTab) return false;
+	if (tabHealth[activeTab.id]?.status === "fail") return true;
+	const frameState = frameStateByTab[activeTab.id];
+	return frameState === "error" || frameState === "timeout";
+});
+let failureCountdown = $state(FAILURE_SKIP_COUNTDOWN_S);
+const nextTabAfterFailure = $derived(tabs[nextPlayableIndex(activeTabIndex)]);
+
+$effect(() => {
+	if (!activeTabFailing || emptyVariant) return;
+	const interval = setInterval(() => {
+		failureCountdown -= 1;
+		if (failureCountdown <= 0) {
+			switchTab(nextPlayableIndex(activeTabIndex), { graceActive: false });
+		}
+	}, 1000);
+	return () => clearInterval(interval);
+});
+
+// --- System banner (spec 8.3) ---
+let sseConnected = $state(true);
+let sseDisconnectedAt = $state<number | null>(null);
+let consecutiveFetchFailures = $state(0);
+let lastSuccessfulRefreshAt = $state(Date.now());
+function registerFetchFailure() {
+	consecutiveFetchFailures += 1;
+}
+function registerFetchSuccess() {
+	consecutiveFetchFailures = 0;
+	lastSuccessfulRefreshAt = Date.now();
+}
+let bannerTick = $state(Date.now());
+let bannerTimer: ReturnType<typeof setInterval>;
+onMount(() => {
+	bannerTimer = setInterval(() => {
+		bannerTick = Date.now();
+	}, 3000);
+});
+const bannerState = $derived.by(
+	(): "live-updates-dropped" | "server-unreachable" | "config-stale" | null => {
+		if (
+			consecutiveFetchFailures >= 3 ||
+			bannerTick - lastSuccessfulRefreshAt > 60_000
+		) {
+			return "server-unreachable";
+		}
+		if (sseDisconnectedAt !== null && bannerTick - sseDisconnectedAt > 15_000) {
+			return "live-updates-dropped";
+		}
+		if (bannerTick - lastSuccessfulRefreshAt > 5 * 60_000) {
+			return "config-stale";
+		}
+		return null;
+	},
+);
+const BANNER_COPY: Record<string, string> = {
+	"live-updates-dropped": "Live updates dropped — trying to reconnect",
+	"server-unreachable": "Server unreachable — showing the last known state",
+	"config-stale": "Configuration may be stale",
+};
 </script>
 
 <div class="wrapper" data-transition={tabTransition}>
-  <!-- Iframes: all rendered, inactive ones pushed behind -->
-  {#each tabs as tab, i (tab.id)}
-    <iframe
-      title={tab.title}
-      src={tab.url}
-      class="frame"
-      class:active={i === activeTabIndex}
-      class:leaving={i === previousTabIndex}
-      data-testid="kiosk-iframe"
-      data-tab-id={tab.id}
-    ></iframe>
-  {/each}
+	{#if bannerState}
+		<div class="banner banner-{bannerState}" data-testid="system-banner">{BANNER_COPY[bannerState]}</div>
+	{/if}
 
-  <!-- HUD -->
-  <div class="hud">
-    {#if menu}
-      {#if autoplayEnabled}
-        <div class="menu-card">
-          <!-- Session-only pause/resume; only shown when autoplay is configured on -->
-          <button
-            class="menu-row"
-            data-testid="hud-autoplay-toggle"
-            on:click={() => (autoplayRunning = !autoplayRunning)}
-          >
-            Autoplay: <strong>{autoplayRunning ? "On" : "Off"}</strong>
-          </button>
-        </div>
-      {/if}
+	{#if emptyVariant}
+		<div class="empty-state" data-testid="empty-state" data-variant={emptyVariant}>
+			{#if resolvedDisplay}
+				<span class="rv-chip empty-display-chip">{resolvedDisplay.name}</span>
+			{/if}
+			{#if emptyVariant === "nothing-configured"}
+				<h1>Nothing to show here yet</h1>
+				<a class="rv-btn rv-btn-primary" href="/settings">Open settings</a>
+				<div class="empty-divider">or from a laptop</div>
+				<p class="rv-mono">{window.location.host}/settings</p>
+			{:else if emptyVariant === "none-scheduled"}
+				<h1>Nothing scheduled right now</h1>
+				<a class="rv-btn rv-btn-primary" href="/settings">Review the rules</a>
+			{:else}
+				<h1>Nothing here will load</h1>
+				<a class="rv-btn rv-btn-primary" href="/settings">Check the tabs</a>
+			{/if}
+			<p class="empty-footer rv-mono">
+				{#if resolvedDisplay}
+					this screen is {resolvedDisplay.name} · {resolvedDisplay.match.kind === "queryParam"
+						? `?${resolvedDisplay.match.key}=${resolvedDisplay.match.value}`
+						: resolvedDisplay.match.value}
+				{:else}
+					this screen isn't matched to any Display yet · configure one in Settings
+				{/if}
+			</p>
+		</div>
+	{:else}
+		<!-- Iframes: all rendered, inactive ones pushed behind -->
+		{#each tabs as tab, i (tab.id)}
+			{#key reloadNonce[tab.id] ?? 0}
+				<iframe
+					title={tab.title}
+					src={tab.url}
+					class="frame"
+					class:active={i === activeTabIndex}
+					class:leaving={i === previousTabIndex}
+					data-testid="kiosk-iframe"
+					data-tab-id={tab.id}
+					use:trackFrame={tab.id}
+				></iframe>
+			{/key}
+		{/each}
 
-      <div class="menu-card">
-        <a class="menu-row" href="/settings" data-testid="hud-settings-link">Settings</a>
-      </div>
+		{#if activeTabFailing && activeTab}
+			<div class="failure-card" data-testid="failure-card">
+				<h2>{activeTab.title}</h2>
+				<p class="rv-mono">{activeTab.url}</p>
+				<p>
+					{#if tabHealth[activeTab.id]}
+						{tabHealth[activeTab.id]?.httpStatus ?? "no response"} · {tabHealth[activeTab.id]?.latencyMs ?? "?"}ms
+					{:else}
+						no response yet
+					{/if}
+				</p>
+				<p class="rv-mono">last good: {tabHealth[activeTab.id]?.lastGoodAt ?? "never"}</p>
+				<p>
+					{#if nextTabAfterFailure}
+						Skipping to <strong>{nextTabAfterFailure.title}</strong> in {failureCountdown}s · rechecking every {FAILURE_RECHECK_LABEL_S}s
+					{/if}
+				</p>
+				<div class="failure-actions">
+					<button type="button" class="rv-btn" onclick={reloadActiveTab}>Retry now</button>
+					<button type="button" class="rv-btn" onclick={() => switchTab(nextPlayableIndex(activeTabIndex), { graceActive: false })}>Skip now</button>
+					<a class="rv-btn" href="/settings">Fix in settings</a>
+				</div>
+			</div>
+		{/if}
 
-      <div class="menu-card">
-        <button
-          class="menu-row"
-          data-testid="hud-refresh"
-          on:click={() => window.location.reload()}>Refresh</button
-        >
-      </div>
-    {/if}
+		{#if dimmed}
+			<button type="button" class="dim-overlay" data-testid="dim-overlay" onclick={() => (dimmed = false)} aria-label="Undim display"></button>
+		{/if}
 
-    <!-- Tab picker + controls: always visible, aligned on one horizontal row -->
-    <div class="picker-row">
-      <div class="menu-card pill-card">
-        <div class="pill-row">
-          {#each tabs as tab, i (tab.id)}
-            <button
-              class="pill"
-              class:active-pill={i === activeTabIndex}
-              data-testid="tab-pill"
-              data-tab-id={tab.id}
-              on:click={() => selectTab(i)}
-            >
-              {#if graceActive && i === activeTabIndex}
-                <span
-                  class="pill-grace-wipe"
-                  data-testid="pill-grace-wipe"
-                  style="background: conic-gradient(var(--ctp-mauve) 0deg {progressPercentage *
-                    360}deg, var(--ctp-peach) {progressPercentage * 360}deg 360deg);"
-                ></span>
-              {/if}
-              <span class="tab-icon-glyph">{tab.icon ?? QUESTION_MARK_ICON}</span>
-              {#if tab.hiddenFromLoop}<span class="pill-hidden-badge">🙈</span>{/if}
-            </button>
-          {/each}
-        </div>
-      </div>
+		<!-- HUD -->
+		<div class="hud hud-{hudMode}" data-testid="hud">
+			{#if menu}
+				<div class="menu-card">
+					{#if autoplayEnabled}
+						<button class="menu-row" data-testid="hud-autoplay-toggle" onclick={() => (autoplayRunning = !autoplayRunning)}>
+							Autoplay: <strong>{autoplayRunning ? "On" : "Off"}</strong>
+						</button>
+					{/if}
+					<button class="menu-row" data-testid="hud-reload" onclick={reloadActiveTab}>Reload this tab</button>
+					<button class="menu-row" data-testid="hud-dim" onclick={() => (dimmed = true)}>Dim display now</button>
+					<a class="menu-row" href="/settings" data-testid="hud-settings-link">Settings</a>
+				</div>
+			{/if}
 
-      <!-- Controls: their own pill group, aligned with the tab picker -->
-      <div class="menu-card pill-card control-pill-group">
-        <div class="pill-row">
-          <button class="pill" data-testid="hud-menu-toggle" on:click={() => (menu = !menu)}
-            >⋯</button
-          >
-        </div>
-      </div>
-    </div>
-  </div>
+			{#if hudMode === "slimline"}
+				<button type="button" class="slimline" data-testid="hud-slimline" onclick={tapSlimline}>
+					{#if activeTab}
+						<span class="tab-icon-glyph slim-glyph">{activeTab.icon ?? QUESTION_MARK_ICON}</span>
+						<span class="slim-title rv-mono">{activeTab.title}</span>
+					{/if}
+					<span class="slim-divider"></span>
+					<span class="slim-marks">
+						{#each tabs as tab, i (tab.id)}
+							{#if i !== activeTabIndex}<span class="slim-mark"></span>{/if}
+						{/each}
+					</span>
+				</button>
+			{:else}
+				<div class="expanded" data-testid="hud-expanded">
+					{#each tabs as tab, i (tab.id)}
+						<button
+							type="button"
+							class="hud-cell"
+							class:active-cell={i === activeTabIndex}
+							data-testid="hud-cell"
+							data-tab-id={tab.id}
+							onclick={() => selectTab(i)}
+						>
+							<span class="tab-icon-glyph" class:dim-glyph={!tab.inLoop}>{tab.icon ?? QUESTION_MARK_ICON}</span>
+							{#if !tab.inLoop}<span class="hud-only-dot"></span>{/if}
+							{#if i === activeTabIndex}
+								<span class="hud-cell-progress" style="width: {Math.min(progressPercentage, 1) * 100}%;"></span>
+							{/if}
+						</button>
+					{/each}
+					<button type="button" class="hud-cell more-cell" data-testid="hud-menu-toggle" onclick={() => (menu = !menu)} aria-label="More">
+						<Icon name="more-horizontal" size={18} />
+					</button>
+				</div>
+			{/if}
+		</div>
 
-  <!-- Progress bar -->
-  {#if !menu && autoplayEnabled && autoplayRunning && !graceActive}
-    <div
-      class="progress"
-      data-testid="progress-bar"
-      style="width: {Math.floor(progressPercentage * 100)}%;
-             transition: {Math.floor(progressPercentage * 100) < 5
-        ? 'none'
-        : 'width 0.05s'}"
-    ></div>
-  {/if}
+		<!-- Progress -->
+		{#if !menu}
+			<div
+				class="progress"
+				class:paused={!autoplayEnabled || !autoplayRunning}
+				data-testid="progress-bar"
+				style="width: {Math.floor(progressPercentage * 100)}%;"
+			></div>
+		{/if}
+	{/if}
 </div>
 
 <style>
-  .wrapper {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-  }
+	.wrapper {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		overflow: hidden;
+		background: var(--rv-bg);
+	}
 
-  .frame {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    border: none;
-    z-index: -500;
-    pointer-events: none;
-    opacity: 0;
-    transform: translateX(0);
-  }
-  .frame.active {
-    z-index: 1;
-    pointer-events: auto;
-    opacity: 1;
-  }
-  .frame.leaving {
-    z-index: 0;
-    pointer-events: none;
-  }
+	.banner {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 48px;
+		z-index: 100;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 13px;
+		color: var(--rv-text);
+	}
+	.banner-live-updates-dropped {
+		background: var(--rv-warn-tint);
+		color: var(--rv-warn-text);
+	}
+	.banner-server-unreachable {
+		background: var(--rv-fail-tint);
+		color: var(--rv-fail-text);
+	}
+	.banner-config-stale {
+		background: var(--rv-raised);
+		color: var(--rv-text-muted);
+	}
 
-  /* Crossfade/slide are additive on top of the base binary swap above — when the
-     Transition setting is "none", no transition property applies and .leaving is
-     never set, so this collapses back to the original instant cut. Duration is
-     hardcoded to match TAB_TRANSITION_MS in the script. */
-  [data-transition="crossfade"] .frame,
-  [data-transition="slide"] .frame {
-    transition:
-      opacity 500ms ease,
-      transform 500ms ease;
-  }
-  [data-transition="crossfade"] .frame.leaving {
-    opacity: 0;
-  }
+	.empty-state {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 1rem;
+		text-align: center;
+		color: var(--rv-text);
+	}
+	.empty-state h1 {
+		font-size: 22px;
+		margin: 0;
+	}
+	.empty-display-chip {
+		position: absolute;
+		top: 24px;
+		left: 24px;
+	}
+	.empty-divider {
+		color: var(--rv-text-dim);
+		font-size: 12px;
+		margin-top: 1rem;
+	}
+	.empty-footer {
+		position: absolute;
+		bottom: 24px;
+		font-size: 11px;
+		color: var(--rv-text-dim);
+	}
 
-  /* Slide: resting/incoming frames are parked off the right edge, the active frame
-     is centered, and the leaving frame slides fully off the left edge instead of
-     fading (opacity stays at 1 so it's visible while it slides away). */
-  [data-transition="slide"] .frame {
-    transform: translateX(100%);
-  }
-  [data-transition="slide"] .frame.active {
-    transform: translateX(0);
-  }
-  [data-transition="slide"] .frame.leaving {
-    transform: translateX(-100%);
-    opacity: 1;
-  }
+	.frame {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		border: none;
+		z-index: -500;
+		pointer-events: none;
+		opacity: 0;
+		transform: translateX(0);
+	}
+	.frame.active {
+		z-index: 1;
+		pointer-events: auto;
+		opacity: 1;
+	}
+	.frame.leaving {
+		z-index: 0;
+		pointer-events: none;
+	}
 
-  @media (prefers-reduced-motion: reduce) {
-    .frame {
-      transition: none !important;
-    }
-  }
+	[data-transition="crossfade"] .frame,
+	[data-transition="slide"] .frame {
+		transition:
+			opacity 500ms ease,
+			transform 500ms ease;
+	}
+	[data-transition="crossfade"] .frame.leaving {
+		opacity: 0;
+	}
 
-  .hud {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    z-index: 10;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
+	[data-transition="slide"] .frame {
+		transform: translateX(100%);
+	}
+	[data-transition="slide"] .frame.active {
+		transform: translateX(0);
+	}
+	[data-transition="slide"] .frame.leaving {
+		transform: translateX(-100%);
+		opacity: 1;
+	}
 
-  .menu-card {
-    background: var(--ctp-crust);
-    border-radius: 6px;
-    overflow: hidden;
-    box-shadow: 0 0 0 1px var(--ctp-surface0);
-  }
+	@media (prefers-reduced-motion: reduce) {
+		.frame {
+			transition: none !important;
+		}
+	}
 
-  .menu-row {
-    display: block;
-    width: 100%;
-    padding: 8px 16px;
-    background: var(--ctp-crust);
-    color: var(--ctp-text);
-    font-size: 1.1rem;
-    border: none;
-    cursor: pointer;
-    text-align: left;
-    text-decoration: none;
-    box-sizing: border-box;
-  }
-  .menu-row:hover {
-    background: var(--ctp-surface0);
-    color: var(--ctp-text);
-  }
+	.failure-card {
+		position: absolute;
+		inset: 0;
+		z-index: 20;
+		background: var(--rv-bg);
+		color: var(--rv-text);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		text-align: center;
+	}
+	.failure-actions {
+		display: flex;
+		gap: 0.5rem;
+		margin-top: 1rem;
+	}
 
-  .picker-row {
-    display: flex;
-    align-items: flex-end;
-    gap: 0.5rem;
-  }
+	.dim-overlay {
+		position: absolute;
+		inset: 0;
+		z-index: 90;
+		background: rgba(0, 0, 0, 0.92);
+		border: none;
+		cursor: pointer;
+	}
 
-  .pill-card {
-    padding: 0.5rem;
-    max-width: calc(100vw - 2rem);
-    overflow-x: auto;
-  }
-  .control-pill-group {
-    flex-shrink: 0;
-  }
-  .pill-row {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 0.4rem;
-    justify-content: flex-end;
-  }
-  .pill {
-    position: relative;
-    background: var(--ctp-surface0);
-    color: var(--ctp-text);
-    border: none;
-    border-radius: 50%;
-    width: 2.85rem;
-    height: 2.85rem;
-    padding: 0;
-    font-size: 1.425rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    box-sizing: border-box;
-    user-select: none;
-  }
-  .pill:hover {
-    background: var(--ctp-surface1);
-  }
-  .pill.active-pill {
-    background: var(--ctp-mauve);
-    color: var(--ctp-base);
-    font-weight: bold;
-  }
-  .pill :global(.tab-icon-glyph) {
-    position: relative;
-    z-index: 2;
-    font-size: 1.425rem;
-  }
-  .pill-hidden-badge {
-    position: absolute;
-    bottom: -3px;
-    right: -3px;
-    font-size: 0.9rem;
-    line-height: 1;
-    z-index: 2;
-  }
-  .pill-grace-wipe {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    z-index: 1;
-    pointer-events: none;
-  }
+	.hud {
+		position: absolute;
+		bottom: 24px;
+		right: 24px;
+		z-index: 10;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.5rem;
+	}
 
-  .progress {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    height: 8px;
-    background: color-mix(in srgb, var(--ctp-mauve) 50%, transparent);
-    z-index: 50;
-  }
+	.menu-card {
+		background: var(--rv-panel);
+		border: 1px solid var(--rv-border-strong);
+		border-radius: 3px;
+		overflow: hidden;
+	}
+	.menu-row {
+		display: block;
+		width: 100%;
+		padding: 8px 16px;
+		background: var(--rv-panel);
+		color: var(--rv-text);
+		font-size: 13px;
+		border: none;
+		cursor: pointer;
+		text-align: left;
+		text-decoration: none;
+		box-sizing: border-box;
+	}
+	.menu-row:hover {
+		background: var(--rv-raised);
+	}
+
+	.slimline {
+		width: 180px;
+		height: 30px;
+		background: var(--rv-panel);
+		border: 1px solid var(--rv-border-strong);
+		border-radius: 3px;
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0 0.5rem;
+		cursor: pointer;
+	}
+	.slim-glyph {
+		font-size: 14px;
+		color: var(--rv-accent);
+	}
+	.slim-title {
+		font-size: 10.5px;
+		color: var(--rv-text);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		flex: 1;
+	}
+	.slim-divider {
+		width: 1px;
+		height: 16px;
+		background: var(--rv-rule);
+	}
+	.slim-marks {
+		display: flex;
+		gap: 3px;
+	}
+	.slim-mark {
+		width: 5px;
+		height: 5px;
+		border-radius: 50%;
+		background: var(--rv-mark-faint);
+	}
+
+	.expanded {
+		background: var(--rv-panel);
+		border: 1px solid var(--rv-border-strong);
+		border-radius: 3px;
+		display: flex;
+		height: 44px;
+		overflow: hidden;
+	}
+	.hud-cell {
+		width: 44px;
+		height: 44px;
+		border: none;
+		background: transparent;
+		color: var(--rv-text-muted);
+		font-size: 18px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		position: relative;
+		cursor: pointer;
+	}
+	.hud-cell.active-cell {
+		background: var(--rv-raised);
+		color: var(--rv-accent);
+	}
+	.dim-glyph {
+		opacity: 0.5;
+	}
+	.hud-only-dot {
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		width: 4px;
+		height: 4px;
+		border-radius: 50%;
+		background: var(--rv-mark-faint);
+	}
+	.hud-cell-progress {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		height: 2px;
+		background: var(--rv-accent);
+	}
+	.more-cell {
+		border-left: 1px solid var(--rv-rule);
+		font-size: 20px;
+	}
+
+	.progress {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		height: 2px;
+		background: var(--rv-accent);
+		z-index: 50;
+	}
+	.progress.paused {
+		background: var(--rv-mark-faint);
+	}
 </style>

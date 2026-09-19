@@ -15,8 +15,12 @@ const allServiceMocks = [
 	reorderMock,
 ];
 
-// Must run before the controller is imported: it builds `new TabsService(new TabsRepository())`
-// at module scope, so both modules need to be faked first.
+const getTabHealthMapMock = mock();
+
+// Must run before the controller is imported: it builds `new TabsService(new
+// TabsRepository(), new DisplaysRepository(), new WindowsRepository())` and
+// references `runtimeState` at module scope, so every one of those needs to be
+// faked first.
 mock.module("../services/TabsService", () => ({
 	TabsService: class {
 		getAll = getAllMock;
@@ -27,8 +31,13 @@ mock.module("../services/TabsService", () => ({
 		reorder = reorderMock;
 	},
 }));
-mock.module("../db/TabsRepository", () => ({
-	TabsRepository: class {},
+mock.module("../db/TabsRepository", () => ({ TabsRepository: class {} }));
+mock.module("../db/DisplaysRepository", () => ({
+	DisplaysRepository: class {},
+}));
+mock.module("../db/WindowsRepository", () => ({ WindowsRepository: class {} }));
+mock.module("../runtime/RuntimeState", () => ({
+	runtimeState: { getTabHealthMap: getTabHealthMapMock },
 }));
 
 const { tabsController } = await import("./tabs");
@@ -38,14 +47,16 @@ const sampleTab = {
 	id: "1",
 	url: "https://example.com",
 	title: "Example",
-	hiddenFromLoop: false,
-	conditions: null,
+	inLoop: true,
+	displays: null,
+	windows: null,
 	customDuration: null,
 	icon: null,
 };
 
 beforeEach(() => {
 	for (const m of allServiceMocks) m.mockReset();
+	getTabHealthMapMock.mockReset();
 });
 
 describe("GET /tabs", () => {
@@ -62,6 +73,31 @@ describe("GET /tabs", () => {
 		// Assert
 		expect(response.status).toBe(200);
 		expect(body).toEqual([sampleTab]);
+	});
+});
+
+describe("GET /tabs/health", () => {
+	test("returns the tab health map from RuntimeState", async () => {
+		// Arrange
+		getTabHealthMapMock.mockReturnValue({
+			1: {
+				status: "ok",
+				latencyMs: 42,
+				httpStatus: 200,
+				lastGoodAt: "now",
+				lastCheckedAt: "now",
+			},
+		});
+
+		// Act
+		const response = await tabsController.handle(
+			new Request("http://localhost/tabs/health"),
+		);
+		const body = (await response.json()) as Record<string, { status: string }>;
+
+		// Assert
+		expect(response.status).toBe(200);
+		expect(body["1"]?.status).toBe("ok");
 	});
 });
 
@@ -120,6 +156,31 @@ describe("POST /tabs", () => {
 		expect(createMock).toHaveBeenCalledWith(
 			expect.objectContaining(requestBody),
 		);
+	});
+
+	test("maps BadRequestError (unknown display/window id) to a 400", async () => {
+		// Arrange
+		createMock.mockRejectedValue(
+			new BadRequestError('Unknown display id "bogus"'),
+		);
+
+		// Act
+		const response = await tabsController.handle(
+			new Request("http://localhost/tabs", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					url: "https://example.com",
+					title: "Example",
+					displays: ["bogus"],
+				}),
+			}),
+		);
+		const body = await response.json();
+
+		// Assert
+		expect(response.status).toBe(400);
+		expect(body).toEqual({ message: 'Unknown display id "bogus"' });
 	});
 
 	test("passes a non-null icon through to the service", async () => {

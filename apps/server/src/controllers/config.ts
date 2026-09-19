@@ -16,6 +16,11 @@ const ConfigModel = t.Object({
 		t.Literal("crossfade"),
 		t.Literal("slide"),
 	]),
+	kioskControls: t.Union([
+		t.Literal("auto"),
+		t.Literal("slim"),
+		t.Literal("expanded"),
+	]),
 });
 
 const service = new ConfigService(new ConfigRepository());

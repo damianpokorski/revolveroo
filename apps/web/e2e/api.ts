@@ -5,7 +5,9 @@ const API_BASE = "http://localhost:3000/api";
 export interface SeededTab {
 	id: string;
 	title: string;
-	hiddenFromLoop: boolean;
+	inLoop: boolean;
+	displays: string[] | null;
+	windows: { windowId: string; days: number[] }[] | null;
 }
 
 export async function fetchTabs(
@@ -30,6 +32,7 @@ export interface Config {
 	autoplayEnabled: boolean;
 	theme: string;
 	tabTransition: string;
+	kioskControls: string;
 }
 
 // PUT /config replaces the whole config object (no partial-update support), so a
@@ -78,5 +81,77 @@ export async function createTab(
 	const res = await request.post(`${API_BASE}/tabs`, { data: rest });
 	if (!res.ok()) {
 		throw new Error(`POST /tabs failed: ${res.status()} ${await res.text()}`);
+	}
+	return res.json();
+}
+
+export interface SeededDisplay {
+	id: string;
+	name: string;
+	match: { kind: string; key?: string; value: string };
+}
+
+export async function fetchDisplays(
+	request: APIRequestContext,
+): Promise<SeededDisplay[]> {
+	const res = await request.get(`${API_BASE}/displays`);
+	return res.json();
+}
+
+export async function createDisplay(
+	request: APIRequestContext,
+	body: Record<string, unknown>,
+) {
+	const res = await request.post(`${API_BASE}/displays`, { data: body });
+	if (!res.ok()) {
+		throw new Error(
+			`POST /displays failed: ${res.status()} ${await res.text()}`,
+		);
+	}
+	return res.json();
+}
+
+export async function deleteDisplay(request: APIRequestContext, id: string) {
+	const res = await request.delete(`${API_BASE}/displays/${id}`);
+	if (!res.ok()) {
+		throw new Error(
+			`DELETE /displays/${id} failed: ${res.status()} ${await res.text()}`,
+		);
+	}
+}
+
+export interface SeededWindow {
+	id: string;
+	name: string;
+	startTime: string;
+	endTime: string;
+}
+
+export async function fetchWindows(
+	request: APIRequestContext,
+): Promise<SeededWindow[]> {
+	const res = await request.get(`${API_BASE}/windows`);
+	return res.json();
+}
+
+export async function createWindow(
+	request: APIRequestContext,
+	body: Record<string, unknown>,
+) {
+	const res = await request.post(`${API_BASE}/windows`, { data: body });
+	if (!res.ok()) {
+		throw new Error(
+			`POST /windows failed: ${res.status()} ${await res.text()}`,
+		);
+	}
+	return res.json();
+}
+
+export async function deleteWindow(request: APIRequestContext, id: string) {
+	const res = await request.delete(`${API_BASE}/windows/${id}`);
+	if (!res.ok()) {
+		throw new Error(
+			`DELETE /windows/${id} failed: ${res.status()} ${await res.text()}`,
+		);
 	}
 }

@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { fetchTabByTitle, putConfig } from "./api";
+import {
+	createTab,
+	deleteTab,
+	fetchTabByTitle,
+	fetchTabsRaw,
+	putConfig,
+} from "./api";
 
 test.describe("Visual — kiosk root", () => {
 	test.beforeEach(async ({ page }) => {
@@ -7,14 +13,18 @@ test.describe("Visual — kiosk root", () => {
 	});
 
 	test.afterEach(async ({ request }) => {
-		await putConfig(request, { playbackInterval: 5000, autoplayEnabled: true });
+		await putConfig(request, {
+			playbackInterval: 5000,
+			autoplayEnabled: true,
+			kioskControls: "auto",
+		});
 	});
 
 	test("default state", async ({ page, request }) => {
 		await putConfig(request, { playbackInterval: 5000, autoplayEnabled: true });
 		await page.goto("/");
 		await expect(
-			page.locator('[data-testid="tab-pill"].active-pill'),
+			page.locator('[data-testid="hud-cell"].active-cell'),
 		).toBeVisible();
 		await page.evaluate(() => document.fonts.ready);
 
@@ -23,14 +33,14 @@ test.describe("Visual — kiosk root", () => {
 		});
 	});
 
-	test("non-default state — a specific tab selected via its pill", async ({
+	test("non-default state — a specific tab selected via its HUD cell", async ({
 		page,
 		request,
 	}) => {
 		const trello = await fetchTabByTitle(request, "Trello");
 		await page.goto("/");
 		await page
-			.locator(`[data-testid="tab-pill"][data-tab-id="${trello.id}"]`)
+			.locator(`[data-testid="hud-cell"][data-tab-id="${trello.id}"]`)
 			.click();
 		await expect(
 			page.locator(`[data-testid="kiosk-iframe"][data-tab-id="${trello.id}"]`),
@@ -40,5 +50,42 @@ test.describe("Visual — kiosk root", () => {
 		await expect(page).toHaveScreenshot("kiosk-non-default.png", {
 			maxDiffPixelRatio: 0.02,
 		});
+	});
+
+	test("slimline HUD — forced via kioskControls", async ({ page, request }) => {
+		await putConfig(request, { kioskControls: "slim" });
+		await page.goto("/");
+		await expect(page.getByTestId("hud-slimline")).toBeVisible();
+		await page.evaluate(() => document.fonts.ready);
+
+		await expect(page).toHaveScreenshot("kiosk-slimline.png", {
+			maxDiffPixelRatio: 0.02,
+		});
+	});
+
+	test("empty state — nothing configured", async ({ page, request }) => {
+		const backup = await fetchTabsRaw(request);
+
+		try {
+			for (const tab of backup) {
+				await deleteTab(request, tab.id as string);
+			}
+
+			await page.goto("/");
+			await expect(page.getByTestId("empty-state")).toHaveAttribute(
+				"data-variant",
+				"nothing-configured",
+			);
+			await page.evaluate(() => document.fonts.ready);
+
+			await expect(page).toHaveScreenshot("kiosk-empty.png", {
+				maxDiffPixelRatio: 0.02,
+			});
+		} finally {
+			// Restore the seeded tabs so later specs sharing this data file aren't affected.
+			for (const tab of backup) {
+				await createTab(request, tab);
+			}
+		}
 	});
 });

@@ -2,9 +2,11 @@ import { openapi } from "@elysia/openapi";
 import { Elysia } from "elysia";
 import { z } from "zod";
 import { configController } from "./controllers/config";
+import { displaysController } from "./controllers/displays";
 import { eventsController } from "./controllers/events";
+import { overviewController } from "./controllers/overview";
 import { tabsController } from "./controllers/tabs";
-import { timeRangesController } from "./controllers/time-ranges";
+import { windowsController } from "./controllers/windows";
 import { errorPlugin } from "./errors";
 
 export const router = new Elysia({ prefix: "/api" })
@@ -21,5 +23,7 @@ export const router = new Elysia({ prefix: "/api" })
 	.get("/health", () => ({ status: "ok" }))
 	.use(configController)
 	.use(tabsController)
-	.use(timeRangesController)
+	.use(windowsController)
+	.use(displaysController)
+	.use(overviewController)
 	.use(eventsController);

@@ -1,7 +1,7 @@
-import type { Tab, TabCondition } from "../store/types";
+import type { Tab, TabWindow } from "../store/types";
 import { store } from "../store/YamlStore";
 
-export type { Tab, TabCondition };
+export type { Tab, TabWindow };
 export type NewTab = Omit<Tab, "id">;
 
 export class TabsRepository {

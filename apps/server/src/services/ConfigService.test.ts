@@ -18,6 +18,7 @@ const sampleConfig: Config = {
 	autoplayEnabled: true,
 	theme: "mocha",
 	tabTransition: "crossfade",
+	kioskControls: "auto",
 };
 
 beforeEach(() => {
@@ -47,6 +48,7 @@ describe("update", () => {
 			autoplayEnabled: true,
 			theme: "mocha" as const,
 			tabTransition: "crossfade" as const,
+			kioskControls: "auto" as const,
 		};
 
 		// Act
