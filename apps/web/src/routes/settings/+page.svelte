@@ -27,6 +27,12 @@ const KIOSK_CONTROLS_OPTIONS = [
 	{ value: "expanded", label: "Expanded" },
 ] as const;
 
+const KIOSK_CONTROLS_SIZE_OPTIONS = [
+	{ value: "s", label: "S" },
+	{ value: "m", label: "M" },
+	{ value: "l", label: "L" },
+] as const;
+
 let tabs = $state<TabData[]>([]);
 let displays = $state<DisplayData[]>([]);
 let windows = $state<WindowData[]>([]);
@@ -540,23 +546,44 @@ function scheduleConfigSave() {
 							{/each}
 						</select>
 					</label>
-					<div>
-						<span class="rv-section-label">Kiosk controls</span>
-						<div class="segmented" data-testid="kiosk-controls-segmented">
-							{#each KIOSK_CONTROLS_OPTIONS as opt (opt.value)}
-								<button
-									type="button"
-									class="rv-btn rv-btn-secondary"
-									class:active={config.kioskControls === opt.value}
-									data-testid="kiosk-controls-{opt.value}"
-									onclick={() => {
-										if (config) config.kioskControls = opt.value;
-										scheduleConfigSave();
-									}}
-								>
-									{opt.label}
-								</button>
-							{/each}
+					<div class="kiosk-controls-row">
+						<div>
+							<span class="rv-section-label">Kiosk controls</span>
+							<div class="segmented" data-testid="kiosk-controls-segmented">
+								{#each KIOSK_CONTROLS_OPTIONS as opt (opt.value)}
+									<button
+										type="button"
+										class="rv-btn rv-btn-secondary"
+										class:active={config.kioskControls === opt.value}
+										data-testid="kiosk-controls-{opt.value}"
+										onclick={() => {
+											if (config) config.kioskControls = opt.value;
+											scheduleConfigSave();
+										}}
+									>
+										{opt.label}
+									</button>
+								{/each}
+							</div>
+						</div>
+						<div>
+							<span class="rv-section-label">Kiosk controls size</span>
+							<div class="segmented" data-testid="kiosk-controls-size-segmented">
+								{#each KIOSK_CONTROLS_SIZE_OPTIONS as opt (opt.value)}
+									<button
+										type="button"
+										class="rv-btn rv-btn-secondary"
+										class:active={config.kioskControlsSize === opt.value}
+										data-testid="kiosk-controls-size-{opt.value}"
+										onclick={() => {
+											if (config) config.kioskControlsSize = opt.value;
+											scheduleConfigSave();
+										}}
+									>
+										{opt.label}
+									</button>
+								{/each}
+							</div>
 						</div>
 					</div>
 				</div>
@@ -692,6 +719,14 @@ function scheduleConfigSave() {
 		gap: 0.5rem;
 		color: var(--rv-text);
 		font-size: 13.5px;
+	}
+
+	.kiosk-controls-row {
+		display: flex;
+		gap: 1.5rem;
+	}
+	.kiosk-controls-row > div {
+		flex: 1;
 	}
 
 	.segmented {

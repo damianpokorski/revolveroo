@@ -69,6 +69,7 @@ describe("load", () => {
 			theme: "mocha",
 			tabTransition: "crossfade",
 			kioskControls: "auto",
+			kioskControlsSize: "s",
 		});
 		const written = await readFile(filePath, "utf8");
 		expect(written).toContain("dashboard");

@@ -1,6 +1,11 @@
 import type { ConfigRepository } from "../db/ConfigRepository";
 import { notifyDataChanged } from "../events";
-import type { KioskControls, TabTransition, Theme } from "../store/types";
+import type {
+	KioskControls,
+	KioskControlsSize,
+	TabTransition,
+	Theme,
+} from "../store/types";
 
 export interface ConfigBody {
 	playbackInterval: number;
@@ -8,6 +13,7 @@ export interface ConfigBody {
 	theme: Theme;
 	tabTransition: TabTransition;
 	kioskControls: KioskControls;
+	kioskControlsSize: KioskControlsSize;
 }
 
 export class ConfigService {

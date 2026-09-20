@@ -19,6 +19,7 @@ const sampleConfig: Config = {
 	theme: "mocha",
 	tabTransition: "crossfade",
 	kioskControls: "auto",
+	kioskControlsSize: "s",
 };
 
 beforeEach(() => {
@@ -49,6 +50,7 @@ describe("update", () => {
 			theme: "mocha" as const,
 			tabTransition: "crossfade" as const,
 			kioskControls: "auto" as const,
+			kioskControlsSize: "s" as const,
 		};
 
 		// Act

@@ -33,6 +33,7 @@ export interface Config {
 	theme: string;
 	tabTransition: string;
 	kioskControls: string;
+	kioskControlsSize: string;
 }
 
 // PUT /config replaces the whole config object (no partial-update support), so a

@@ -37,6 +37,7 @@ let playbackInterval = $state(5000);
 let autoplayEnabled = $state(true);
 let tabTransition = $state<TabTransition>(DEFAULT_TAB_TRANSITION);
 let kioskControls = $state<"auto" | "slim" | "expanded">("auto");
+let kioskControlsSize = $state<"s" | "m" | "l">("s");
 
 async function refreshData() {
 	const [
@@ -80,6 +81,7 @@ async function refreshData() {
 		applyTheme(configResult.data.theme);
 		tabTransition = configResult.data.tabTransition;
 		kioskControls = configResult.data.kioskControls;
+		kioskControlsSize = configResult.data.kioskControlsSize;
 	}
 }
 onMount(refreshData);
@@ -126,6 +128,12 @@ let dimmed = $state(false);
 
 const activeTab = $derived(tabs[activeTabIndex]);
 const loopCount = $derived(tabs.filter((t) => t.inLoop).length);
+const KIOSK_CONTROLS_SCALE: Record<"s" | "m" | "l", number> = {
+	s: 1,
+	m: 1.5,
+	l: 2,
+};
+const hudScale = $derived(KIOSK_CONTROLS_SCALE[kioskControlsSize]);
 const baseHudMode = $derived(
 	kioskControls === "slim"
 		? "slimline"
@@ -451,7 +459,11 @@ const BANNER_COPY: Record<string, string> = {
 		{/if}
 
 		<!-- HUD -->
-		<div class="hud hud-{hudMode}" data-testid="hud">
+		<div
+			class="hud hud-{hudMode}"
+			data-testid="hud"
+			style="--hud-scale: {hudScale};"
+		>
 			{#if menu}
 				<div class="menu-card">
 					{#if autoplayEnabled}
@@ -667,6 +679,8 @@ const BANNER_COPY: Record<string, string> = {
 		flex-direction: column;
 		align-items: flex-end;
 		gap: 0.5rem;
+		transform: scale(var(--hud-scale, 1));
+		transform-origin: bottom right;
 	}
 
 	.menu-card {

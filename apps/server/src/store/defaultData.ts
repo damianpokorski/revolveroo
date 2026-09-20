@@ -6,6 +6,7 @@ export const DEFAULT_CONFIG: Config = {
 	theme: "mocha",
 	tabTransition: "crossfade",
 	kioskControls: "auto",
+	kioskControlsSize: "s",
 };
 
 export const DEFAULT_DISPLAYS: Display[] = [

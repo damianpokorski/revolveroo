@@ -21,6 +21,7 @@ const ConfigModel = t.Object({
 		t.Literal("slim"),
 		t.Literal("expanded"),
 	]),
+	kioskControlsSize: t.Union([t.Literal("s"), t.Literal("m"), t.Literal("l")]),
 });
 
 const service = new ConfigService(new ConfigRepository());

@@ -7,6 +7,9 @@ export type TabTransition = (typeof TAB_TRANSITIONS)[number];
 export const KIOSK_CONTROLS = ["auto", "slim", "expanded"] as const;
 export type KioskControls = (typeof KIOSK_CONTROLS)[number];
 
+export const KIOSK_CONTROLS_SIZES = ["s", "m", "l"] as const;
+export type KioskControlsSize = (typeof KIOSK_CONTROLS_SIZES)[number];
+
 export type DisplayMatch =
 	| { kind: "queryParam"; key: string; value: string }
 	| { kind: "hostname"; value: string };
@@ -46,4 +49,5 @@ export interface Config {
 	theme: Theme;
 	tabTransition: TabTransition;
 	kioskControls: KioskControls;
+	kioskControlsSize: KioskControlsSize;
 }

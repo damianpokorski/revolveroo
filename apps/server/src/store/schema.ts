@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { KIOSK_CONTROLS, TAB_TRANSITIONS, THEMES } from "./types";
+import {
+	KIOSK_CONTROLS,
+	KIOSK_CONTROLS_SIZES,
+	TAB_TRANSITIONS,
+	THEMES,
+} from "./types";
 
 // File-content validation for the YAML data file — distinct from the route-level
 // TypeBox schemas in controllers/*.ts. This validates whatever a human (or the app
@@ -53,4 +58,5 @@ export const ConfigSchema = z.object({
 	theme: z.enum(THEMES).default("mocha"),
 	tabTransition: z.enum(TAB_TRANSITIONS).default("crossfade"),
 	kioskControls: z.enum(KIOSK_CONTROLS).default("auto"),
+	kioskControlsSize: z.enum(KIOSK_CONTROLS_SIZES).default("s"),
 });

@@ -24,6 +24,7 @@ const sampleConfig = {
 	theme: "mocha",
 	tabTransition: "crossfade",
 	kioskControls: "auto",
+	kioskControlsSize: "s",
 };
 
 beforeEach(() => {
@@ -57,6 +58,7 @@ describe("PUT /config", () => {
 			theme: "mocha",
 			tabTransition: "crossfade",
 			kioskControls: "auto",
+			kioskControlsSize: "s",
 		};
 
 		// Act
@@ -83,6 +85,7 @@ describe("PUT /config", () => {
 			theme: "mocha",
 			tabTransition: "crossfade",
 			kioskControls: "auto",
+			kioskControlsSize: "s",
 		};
 		updateMock.mockResolvedValue(disabledConfig);
 		const requestBody = {
@@ -91,6 +94,7 @@ describe("PUT /config", () => {
 			theme: "mocha",
 			tabTransition: "crossfade",
 			kioskControls: "auto",
+			kioskControlsSize: "s",
 		};
 
 		// Act
