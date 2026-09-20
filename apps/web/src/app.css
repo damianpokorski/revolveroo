@@ -2,141 +2,199 @@
 @import "./lib/styles/controls.css";
 
 /* Never reference --rv-* colours as raw values in a component; components
-   should reference the --rv-* custom properties below by name so mocha/latte
-   get different rungs of the ramp for the same semantic role. Macchiato and
-   Frappé reuse the Mocha mapping verbatim for now (see revolveroo-design spec
-   4.2 note on tiers needing separate measurement before shipping). */
+   should reference the --rv-* custom properties below by name so mocha/
+   macchiato/frappe/latte get different rungs of the ramp for the same
+   semantic role. */
 
-:root[data-theme="mocha"],
-:root[data-theme="macchiato"],
+:root[data-theme="mocha"] {
+  --rv-bg: #1e1e2e;
+  --rv-bg-sunken: #11111b;
+  --rv-panel: #181825;
+  --rv-raised: #313244;
+  --rv-rule: #2a2a3c;
+  --rv-border: #313244;
+  --rv-border-strong: #45475a;
+  --rv-text: #cdd6f4;
+  --rv-text-2: #bac2de;
+  --rv-text-muted: #a6adc8;
+  --rv-text-dim: #9399b2;
+  --rv-mark-faint: #7f849c;
+  --rv-accent: #cba6f7;
+  --rv-accent-ink: #1e1e2e;
+  --rv-accent-tint: #332e46;
+  --rv-accent-edge: #5b4e74;
+  --rv-ok: #a6e3a1;
+  --rv-warn: #f9e2af;
+  --rv-warn-text: #eed9a8;
+  --rv-warn-tint: #2b2621;
+  --rv-warn-edge: #5e522f;
+  --rv-fail: #f38ba8;
+  --rv-fail-text: #f5a3bb;
+  --rv-fail-tint: #2b1e25;
+  --rv-fail-edge: #5e3644;
+  color-scheme: dark;
+}
+
+:root[data-theme="macchiato"] {
+  --rv-bg: #24273a;
+  --rv-bg-sunken: #181926;
+  --rv-panel: #1e2030;
+  --rv-raised: #363a4f;
+  --rv-rule: #2f3347;
+  --rv-border: #363a4f;
+  --rv-border-strong: #494d64;
+  --rv-text: #cad3f5;
+  --rv-text-2: #b8c0e0;
+  --rv-text-muted: #a5adcb;
+  --rv-text-dim: #939ab7;
+  --rv-mark-faint: #8087a2;
+  --rv-accent: #c6a0f6;
+  --rv-accent-ink: #24273a;
+  --rv-accent-tint: #373651;
+  --rv-accent-edge: #5d517c;
+  --rv-ok: #a6da95;
+  --rv-warn: #eed49f;
+  --rv-warn-text: #ebd6aa;
+  --rv-warn-tint: #292620;
+  --rv-warn-edge: #594e35;
+  --rv-fail: #ed8796;
+  --rv-fail-text: #e893a0;
+  --rv-fail-tint: #271e1f;
+  --rv-fail-edge: #553136;
+  color-scheme: dark;
+}
+
 :root[data-theme="frappe"] {
-	--rv-bg: #1e1e2e;
-	--rv-bg-sunken: #11111b;
-	--rv-panel: #181825;
-	--rv-raised: #313244;
-	--rv-rule: #2a2a3c;
-	--rv-border: #313244;
-	--rv-border-strong: #45475a;
-	--rv-text: #cdd6f4;
-	--rv-text-2: #bac2de;
-	--rv-text-muted: #a6adc8;
-	--rv-text-dim: #9399b2;
-	--rv-mark-faint: #7f849c;
-	--rv-accent: #cba6f7;
-	--rv-accent-ink: #1e1e2e;
-	--rv-accent-tint: #332e46;
-	--rv-accent-edge: #5b4e74;
-	--rv-ok: #a6e3a1;
-	--rv-warn: #f9e2af;
-	--rv-warn-text: #eed9a8;
-	--rv-warn-tint: #2b2621;
-	--rv-warn-edge: #5e522f;
-	--rv-fail: #f38ba8;
-	--rv-fail-text: #f5a3bb;
-	--rv-fail-tint: #2b1e25;
-	--rv-fail-edge: #5e3644;
-	color-scheme: dark;
+  --rv-bg: #303446;
+  --rv-bg-sunken: #232634;
+  --rv-panel: #292c3c;
+  --rv-raised: #414559;
+  --rv-rule: #3b3f52;
+  --rv-border: #414559;
+  --rv-border-strong: #51576d;
+  --rv-text: #c6d0f5;
+  --rv-text-2: #b5bfe2;
+  --rv-text-muted: #a5adce;
+  --rv-text-dim: #949cbb;
+  --rv-mark-faint: #838ba7;
+  --rv-accent: #ca9ee6;
+  --rv-accent-ink: #303446;
+  --rv-accent-tint: #424159;
+  --rv-accent-edge: #66597e;
+  --rv-ok: #a6d189;
+  --rv-warn: #e5c890;
+  --rv-warn-text: #e2ca9b;
+  --rv-warn-tint: #26241f;
+  --rv-warn-edge: #524834;
+  --rv-fail: #e78284;
+  --rv-fail-text: #e38e8f;
+  --rv-fail-tint: #261d1d;
+  --rv-fail-edge: #513132;
+  color-scheme: dark;
 }
 
 :root[data-theme="latte"] {
-	--rv-bg: #eff1f5;
-	--rv-bg-sunken: #dce0e8;
-	--rv-panel: #e6e9ef;
-	--rv-raised: #ccd0da;
-	--rv-rule: #e1e4ec;
-	--rv-border: #ccd0da;
-	--rv-border-strong: #bcc0cc;
-	--rv-text: #4c4f69;
-	--rv-text-2: #5c5f77;
-	--rv-text-muted: #5c5f77;
-	--rv-text-dim: #63667e;
-	--rv-mark-faint: #7c7f93;
-	--rv-accent: #8839ef;
-	--rv-accent-ink: #eff1f5;
-	--rv-accent-tint: #e3dbf4;
-	--rv-accent-edge: #c6a7f3;
-	--rv-ok: #40a02b;
-	--rv-warn: #df8e1d;
-	--rv-warn-text: #8a5a12;
-	--rv-warn-tint: #fbf1e0;
-	--rv-warn-edge: #e7cb9b;
-	--rv-fail: #d20f39;
-	--rv-fail-text: #b3123a;
-	--rv-fail-tint: #fbe9ec;
-	--rv-fail-edge: #efb7c3;
-	color-scheme: light;
+  --rv-bg: #eff1f5;
+  --rv-bg-sunken: #dce0e8;
+  --rv-panel: #e6e9ef;
+  --rv-raised: #ccd0da;
+  --rv-rule: #e1e4ec;
+  --rv-border: #ccd0da;
+  --rv-border-strong: #bcc0cc;
+  --rv-text: #4c4f69;
+  --rv-text-2: #5c5f77;
+  --rv-text-muted: #5c5f77;
+  --rv-text-dim: #63667e;
+  --rv-mark-faint: #7c7f93;
+  --rv-accent: #8839ef;
+  --rv-accent-ink: #eff1f5;
+  --rv-accent-tint: #e3dbf4;
+  --rv-accent-edge: #c6a7f3;
+  --rv-ok: #40a02b;
+  --rv-warn: #df8e1d;
+  --rv-warn-text: #8a5a12;
+  --rv-warn-tint: #fbf1e0;
+  --rv-warn-edge: #e7cb9b;
+  --rv-fail: #d20f39;
+  --rv-fail-text: #b3123a;
+  --rv-fail-tint: #fbe9ec;
+  --rv-fail-edge: #efb7c3;
+  color-scheme: light;
 }
 
 /* Default to mocha before the FOUC-prevention script in app.html sets
    data-theme from localStorage (first paint / no-JS fallback). */
 :root {
-	--rv-bg: #1e1e2e;
-	--rv-bg-sunken: #11111b;
-	--rv-panel: #181825;
-	--rv-raised: #313244;
-	--rv-rule: #2a2a3c;
-	--rv-border: #313244;
-	--rv-border-strong: #45475a;
-	--rv-text: #cdd6f4;
-	--rv-text-2: #bac2de;
-	--rv-text-muted: #a6adc8;
-	--rv-text-dim: #9399b2;
-	--rv-mark-faint: #7f849c;
-	--rv-accent: #cba6f7;
-	--rv-accent-ink: #1e1e2e;
-	--rv-accent-tint: #332e46;
-	--rv-accent-edge: #5b4e74;
-	--rv-ok: #a6e3a1;
-	--rv-warn: #f9e2af;
-	--rv-warn-text: #eed9a8;
-	--rv-warn-tint: #2b2621;
-	--rv-warn-edge: #5e522f;
-	--rv-fail: #f38ba8;
-	--rv-fail-text: #f5a3bb;
-	--rv-fail-tint: #2b1e25;
-	--rv-fail-edge: #5e3644;
-	color-scheme: dark;
+  --rv-bg: #1e1e2e;
+  --rv-bg-sunken: #11111b;
+  --rv-panel: #181825;
+  --rv-raised: #313244;
+  --rv-rule: #2a2a3c;
+  --rv-border: #313244;
+  --rv-border-strong: #45475a;
+  --rv-text: #cdd6f4;
+  --rv-text-2: #bac2de;
+  --rv-text-muted: #a6adc8;
+  --rv-text-dim: #9399b2;
+  --rv-mark-faint: #7f849c;
+  --rv-accent: #cba6f7;
+  --rv-accent-ink: #1e1e2e;
+  --rv-accent-tint: #332e46;
+  --rv-accent-edge: #5b4e74;
+  --rv-ok: #a6e3a1;
+  --rv-warn: #f9e2af;
+  --rv-warn-text: #eed9a8;
+  --rv-warn-tint: #2b2621;
+  --rv-warn-edge: #5e522f;
+  --rv-fail: #f38ba8;
+  --rv-fail-text: #f5a3bb;
+  --rv-fail-tint: #2b1e25;
+  --rv-fail-edge: #5e3644;
+  color-scheme: dark;
 }
 
 body {
-	background: var(--rv-bg);
-	color: var(--rv-text);
-	font-family:
-		"Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
-	font-size: 14px;
+  background: var(--rv-bg);
+  color: var(--rv-text);
+  font-family:
+    "Space Grotesk",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  font-size: 14px;
 }
 
 .rv-mono {
-	font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
 }
 
 * {
-	scrollbar-color: var(--rv-border-strong) var(--rv-bg-sunken);
+  scrollbar-color: var(--rv-border-strong) var(--rv-bg-sunken);
 }
 ::-webkit-scrollbar {
-	width: 8px;
-	height: 8px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-	background: var(--rv-bg-sunken);
+  background: var(--rv-bg-sunken);
 }
 ::-webkit-scrollbar-thumb {
-	background: var(--rv-border-strong);
-	border-radius: 4px;
+  background: var(--rv-border-strong);
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-	background: var(--rv-mark-faint);
+  background: var(--rv-mark-faint);
 }
 
 @font-face {
-	font-family: "Symbols Nerd Font Mono";
-	src: url("/fonts/SymbolsNerdFontMono-Regular.woff2") format("woff2");
-	font-display: swap;
+  font-family: "Symbols Nerd Font Mono";
+  src: url("/fonts/SymbolsNerdFontMono-Regular.woff2") format("woff2");
+  font-display: swap;
 }
 
 /* Tab glyphs only — never used for UI chrome icons (spec 4.5). */
 .tab-icon-glyph {
-	font-family:
-		"Symbols Nerd Font Mono", "Apple Color Emoji", "Segoe UI Emoji",
-		"Noto Color Emoji", sans-serif;
+  font-family:
+    "Symbols Nerd Font Mono", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
 }

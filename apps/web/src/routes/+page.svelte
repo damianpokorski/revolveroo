@@ -21,6 +21,7 @@ const FAILURE_RECHECK_LABEL_S = 60;
 const FAILURE_SKIP_COUNTDOWN_S = 3;
 const AUTO_HUD_TAB_THRESHOLD = 4;
 const SLIMLINE_COLLAPSE_MS = 8000;
+const POLL_INTERVAL_MS = 30_000;
 
 // --- Data ---
 let allTabsCount = $state(0);
@@ -82,6 +83,17 @@ async function refreshData() {
 	}
 }
 onMount(refreshData);
+
+// Fallback poll: the SSE "change" listener below only re-fetches when data
+// actually changes, so an idle-but-healthy server would never refresh
+// lastSuccessfulRefreshAt and would trip the "server-unreachable" banner
+// (spec 8.3) after 60s even though nothing is wrong. Poll independently to
+// keep that timestamp — and the reachability check it drives — honest.
+let pollTimer: ReturnType<typeof setInterval>;
+onMount(() => {
+	pollTimer = setInterval(refreshData, POLL_INTERVAL_MS);
+});
+onDestroy(() => clearInterval(pollTimer));
 
 // Re-fetch tabs/config/displays/windows the instant they change on the server
 // (e.g. an edit made from another device's Settings page). "heartbeat" events
@@ -156,10 +168,10 @@ const emptyVariant = $derived.by(
 );
 
 // --- Autoplay loop ---
-const FRAME = 1000 / 120;
 const GRACE_PERIOD_MS = 8000;
 let progress = 0;
-let handle: ReturnType<typeof setInterval>;
+let lastTick: number | null = null;
+let rafHandle: number;
 
 function isTabSkippable(tab: TabData | undefined): boolean {
 	if (!tab) return true;
@@ -180,21 +192,28 @@ function nextPlayableIndex(from: number): number {
 }
 
 onMount(() => {
-	handle = setInterval(() => {
+	const tick = (now: number) => {
+		rafHandle = requestAnimationFrame(tick);
+		// Track real elapsed time rather than assuming a fixed frame length,
+		// since rAF callbacks don't fire at a perfectly even cadence — a fixed
+		// per-tick increment drifts from wall-clock time and reads as jitter.
+		const elapsed = lastTick === null ? 0 : now - lastTick;
+		lastTick = now;
 		if (menu || emptyVariant || activeTabFailing) return;
 		if (!autoplayEnabled || !autoplayRunning) return;
-		progress += FRAME;
+		progress += elapsed;
 		const effectiveInterval = graceActive
 			? GRACE_PERIOD_MS
 			: (tabs[activeTabIndex]?.customDuration ?? playbackInterval);
 		progressPercentage = progress / effectiveInterval;
 		if (progress < effectiveInterval) return;
 		switchTab(nextPlayableIndex(activeTabIndex), { graceActive: false });
-	}, FRAME);
+	};
+	rafHandle = requestAnimationFrame(tick);
 });
 
 onDestroy(() => {
-	clearInterval(handle);
+	cancelAnimationFrame(rafHandle);
 	clearTimeout(transitionTimeoutHandle);
 	clearInterval(heartbeatTimer);
 	clearTimeout(slimlineCollapseTimer);
@@ -490,7 +509,7 @@ const BANNER_COPY: Record<string, string> = {
 				class="progress"
 				class:paused={!autoplayEnabled || !autoplayRunning}
 				data-testid="progress-bar"
-				style="width: {Math.floor(progressPercentage * 100)}%;"
+				style="width: {Math.min(progressPercentage, 1) * 100}%;"
 			></div>
 		{/if}
 	{/if}
