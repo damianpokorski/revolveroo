@@ -1,8 +1,26 @@
 <script lang="ts">
+import { goto } from "$app/navigation";
 import { page } from "$app/state";
 import { getAutosaveStatus } from "$lib/autosaveStatus.svelte";
+import { getLastKioskUrl } from "$lib/kioskReturn.svelte";
 
 const autosave = getAutosaveStatus();
+
+// A tablet reaches Settings via the kiosk's own HUD menu link (same tab), so
+// "Open kiosk" should return to that exact display's URL — room-matching
+// query params included. We navigate to the recorded URL directly rather than
+// calling history.back(), since an admin bouncing between Overview and
+// Settings on a laptop would otherwise land back on Overview instead of the
+// kiosk. If this session never visited the kiosk (the laptop admin case),
+// fall back to opening it fresh in a new tab so Settings stays open too.
+function goBackToKiosk() {
+	const kioskUrl = getLastKioskUrl();
+	if (kioskUrl) {
+		goto(kioskUrl);
+	} else {
+		window.open("/", "_blank", "noreferrer");
+	}
+}
 
 // Ticks once a second purely to keep the "saved Ns ago" string live; the
 // actual save state lives in the autosaveStatus module store.
@@ -63,8 +81,13 @@ const statusText = $derived.by(() => {
 		>
 			{statusText}
 		</span>
-		<a href="/" target="_blank" rel="noreferrer" class="rv-btn rv-btn-secondary" data-testid="open-kiosk-link">
+		<button
+			type="button"
+			class="rv-btn rv-btn-secondary"
+			data-testid="open-kiosk-link"
+			onclick={goBackToKiosk}
+		>
 			Open kiosk
-		</a>
+		</button>
 	</div>
 </header>

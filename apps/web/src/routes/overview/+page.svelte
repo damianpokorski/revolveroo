@@ -2,6 +2,7 @@
 import { onMount } from "svelte";
 import {
 	createApi,
+	type DisplayData,
 	type OverviewData,
 	resolveServerUrl,
 	type TabData,
@@ -12,7 +13,18 @@ const api = createApi();
 
 let overview = $state<OverviewData | null>(null);
 let tabs = $state<TabData[]>([]);
+let displaysById = $state(new Map<string, DisplayData>());
 let loaded = $state(false);
+
+// Only a queryParam-matched display can be deep-linked to from here — a
+// hostname match only ever resolves on that physical device, so opening it
+// from Overview would just land on whichever (or no) display matches this
+// machine's hostname instead.
+function kioskHref(displayId: string): string | null {
+	const match = displaysById.get(displayId)?.match;
+	if (match?.kind !== "queryParam") return null;
+	return `/?${encodeURIComponent(match.key)}=${encodeURIComponent(match.value)}`;
+}
 
 const GRID_LABELS: Record<string, string> = {
 	"on-screen": "on screen",
@@ -38,12 +50,16 @@ function tabTitle(id: string): string {
 }
 
 async function refresh() {
-	const [overviewRes, tabsRes] = await Promise.all([
+	const [overviewRes, tabsRes, displaysRes] = await Promise.all([
 		api.api.overview.get(),
 		api.api.tabs.get(),
+		api.api.displays.get(),
 	]);
 	if (!overviewRes.error) overview = overviewRes.data;
 	if (!tabsRes.error) tabs = tabsRes.data;
+	if (!displaysRes.error) {
+		displaysById = new Map(displaysRes.data.map((d) => [d.id, d]));
+	}
 	loaded = true;
 }
 
@@ -96,7 +112,20 @@ onMount(() => {
 			<h2 class="rv-section-label">Screens</h2>
 			<div class="screens-grid">
 				{#each overview.displays as display (display.id)}
-					<div class="rv-card screen-card">
+					{@const href = kioskHref(display.id)}
+					<svelte:element
+						this={href ? "a" : "div"}
+						href={href ?? undefined}
+						target={href ? "_blank" : undefined}
+						rel={href ? "noreferrer" : undefined}
+						class="rv-card screen-card"
+						class:screen-card-link={href !== null}
+						data-testid="screen-card"
+						data-display-id={display.id}
+						title={href
+							? `Open ${display.name} in a new tab`
+							: "Matched by hostname — open from that device to preview"}
+					>
 						<div class="screen-header">
 							<span class="dot" class:dot-ok={display.online} class:dot-fail={!display.online}></span>
 							<span class="tab-title">{display.name}</span>
@@ -115,7 +144,7 @@ onMount(() => {
 								<span class:cell-fail={display.frameState !== "ok"}>{display.frameState}</span>
 							{/if}
 						</div>
-					</div>
+					</svelte:element>
 				{/each}
 			</div>
 		</section>
@@ -235,6 +264,15 @@ onMount(() => {
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
+		text-decoration: none;
+		color: inherit;
+	}
+	.screen-card-link {
+		cursor: pointer;
+		transition: border-color 120ms ease;
+	}
+	.screen-card-link:hover {
+		border-color: var(--rv-accent);
 	}
 	.screen-header {
 		display: flex;
