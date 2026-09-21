@@ -82,6 +82,63 @@ test.describe("Kiosk root — playback controls", () => {
 		expect(activeAfter).toBe(target.id);
 	});
 
+	test("double-tapping the active tab pauses rotation with a toast; switching tabs resumes it with another toast", async ({
+		page,
+		request,
+	}) => {
+		await putConfig(request, { playbackInterval: 5000, autoplayEnabled: true });
+		await page.goto("/");
+
+		const tabs = await fetchTabs(request);
+		const activeBefore = await page
+			.locator('[data-testid="hud-cell"].active-cell')
+			.getAttribute("data-tab-id");
+		const target = tabs.find((t) => t.id !== activeBefore);
+		if (!target) throw new Error("Expected another seeded tab to switch to");
+
+		await page
+			.locator(`[data-testid="hud-cell"][data-tab-id="${activeBefore}"]`)
+			.dblclick();
+
+		await expect(page.getByTestId("progress-bar")).toHaveClass(/paused/);
+		await expect(page.getByTestId("toast")).toHaveText("Autoplay paused");
+
+		await page
+			.locator(`[data-testid="hud-cell"][data-tab-id="${target.id}"]`)
+			.click();
+
+		await expect(page.getByTestId("progress-bar")).not.toHaveClass(/paused/);
+		await expect(page.getByTestId("toast")).toHaveText("Autoplay resumed");
+	});
+
+	test("autoplay toggled off via the three-dot menu persists across a tab switch (independent of tap-to-pause)", async ({
+		page,
+		request,
+	}) => {
+		await putConfig(request, { playbackInterval: 5000, autoplayEnabled: true });
+		await page.goto("/");
+
+		const tabs = await fetchTabs(request);
+		const activeBefore = await page
+			.locator('[data-testid="hud-cell"].active-cell')
+			.getAttribute("data-tab-id");
+		const target = tabs.find((t) => t.id !== activeBefore);
+		if (!target) throw new Error("Expected another seeded tab to switch to");
+
+		await page.getByTestId("hud-menu-toggle").click();
+		await page.getByTestId("hud-autoplay-toggle").click();
+		await page.getByTestId("hud-menu-toggle").click();
+		await expect(page.getByTestId("progress-bar")).toHaveClass(/paused/);
+
+		await page
+			.locator(`[data-testid="hud-cell"][data-tab-id="${target.id}"]`)
+			.click();
+
+		await page.waitForTimeout(300);
+		await expect(page.getByTestId("progress-bar")).toHaveClass(/paused/);
+		await expect(page.getByTestId("toast")).toHaveCount(0);
+	});
+
 	test("kioskControls forces slimline or expanded regardless of tab count", async ({
 		page,
 		request,

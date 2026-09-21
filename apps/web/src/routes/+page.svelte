@@ -11,7 +11,9 @@ import {
 import Icon from "$lib/icons/Icon.svelte";
 import { DEFAULT_TAB_TRANSITION, type TabTransition } from "$lib/tabTransition";
 import { applyTheme } from "$lib/theme";
+import { pushToast } from "$lib/toast.svelte";
 import { resolveDisplay, visible } from "$lib/visibility";
+import Toast from "../components/Toast.svelte";
 
 const api = createApi();
 
@@ -121,6 +123,7 @@ onMount(() => {
 // --- UI state ---
 let menu = $state(false);
 let autoplayRunning = $state(true);
+let tapPaused = $state(false);
 let activeTabIndex = $state(0);
 let progressPercentage = $state(0);
 let graceActive = $state(false);
@@ -208,7 +211,7 @@ onMount(() => {
 		const elapsed = lastTick === null ? 0 : now - lastTick;
 		lastTick = now;
 		if (menu || emptyVariant || activeTabFailing) return;
-		if (!autoplayEnabled || !autoplayRunning) return;
+		if (!autoplayEnabled || !autoplayRunning || tapPaused) return;
 		progress += elapsed;
 		const effectiveInterval = graceActive
 			? GRACE_PERIOD_MS
@@ -253,6 +256,37 @@ function switchTab(
 }
 
 const selectTab = (i: number) => switchTab(i, { graceActive: true });
+
+// --- Tap-to-pause (expanded HUD only) ---
+const DOUBLE_TAP_MS = 400;
+let lastTapIndex: number | null = null;
+let lastTapTime = 0;
+
+function tapTab(i: number) {
+	const now = Date.now();
+	const isDoubleTap = lastTapIndex === i && now - lastTapTime <= DOUBLE_TAP_MS;
+	// Reset pairing after a double tap fires so a rapid third tap doesn't
+	// immediately chain into another one.
+	lastTapIndex = isDoubleTap ? null : i;
+	lastTapTime = isDoubleTap ? 0 : now;
+
+	if (isDoubleTap) {
+		if (i !== activeTabIndex) selectTab(i);
+		if (autoplayEnabled && autoplayRunning && !tapPaused) {
+			tapPaused = true;
+			pushToast("Autoplay paused");
+		}
+		return;
+	}
+
+	const wasPaused = tapPaused;
+	const switching = i !== activeTabIndex;
+	selectTab(i);
+	if (wasPaused && switching) {
+		tapPaused = false;
+		pushToast("Autoplay resumed");
+	}
+}
 
 const QUESTION_MARK_ICON = "";
 
@@ -381,6 +415,7 @@ const BANNER_COPY: Record<string, string> = {
 </script>
 
 <div class="wrapper" data-transition={tabTransition}>
+	<Toast />
 	{#if bannerState}
 		<div class="banner banner-{bannerState}" data-testid="system-banner">{BANNER_COPY[bannerState]}</div>
 	{/if}
@@ -499,7 +534,7 @@ const BANNER_COPY: Record<string, string> = {
 							class:active-cell={i === activeTabIndex}
 							data-testid="hud-cell"
 							data-tab-id={tab.id}
-							onclick={() => selectTab(i)}
+							onclick={() => tapTab(i)}
 						>
 							<span class="tab-icon-glyph" class:dim-glyph={!tab.inLoop}>{tab.icon ?? QUESTION_MARK_ICON}</span>
 							{#if !tab.inLoop}<span class="hud-only-dot"></span>{/if}
@@ -519,7 +554,7 @@ const BANNER_COPY: Record<string, string> = {
 		{#if !menu}
 			<div
 				class="progress"
-				class:paused={!autoplayEnabled || !autoplayRunning}
+				class:paused={!autoplayEnabled || !autoplayRunning || tapPaused}
 				data-testid="progress-bar"
 				style="width: {Math.min(progressPercentage, 1) * 100}%;"
 			></div>
