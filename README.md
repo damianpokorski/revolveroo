@@ -22,7 +22,7 @@ Revolveroo is built for a **house full of screens**, not just one: a single orde
 - **Drag-to-reorder** — rearrange tabs in the settings UI without touching config files
 - **Tab icons** — assign a Nerd Font glyph or emoji to each tab via a searchable picker (see [third-party attribution](apps/web/static/icons/THIRD_PARTY_LICENSES.md))
 - **Configurable interval** — set playback speed from 1 s to 20 s with a slider
-- **Color themes** — switch between Catppuccin Mocha, Macchiato, Frappé, and Latte palettes, applied across the whole admin UI, not just the kiosk
+- **Color themes** — switch between Catppuccin (Mocha, Macchiato, Frappé, Latte), Rosé Pine (main, Dawn), Tokyo Night (Night, Day), Kanagawa (Wave, Lotus), Nord, and Dracula palettes, applied across the whole admin UI, not just the kiosk
 - **Slimline / expanded HUD** — a compact strip when a display has a lot of tabs in its loop, a full glyph grid when it doesn't (or force either mode)
 - **Overview** — a read-only `/overview` page showing which displays are online, what's currently on screen, and a tabs × displays grid of where everything lands
 - **Health-aware autoplay** — a tab whose URL is failing is skipped automatically instead of showing a blank frame, with a failure card explaining what's wrong and what happens next

@@ -1,4 +1,17 @@
-export const THEMES = ["mocha", "macchiato", "frappe", "latte"] as const;
+export const THEMES = [
+  "mocha",
+  "macchiato",
+  "frappe",
+  "latte",
+  "rose-pine",
+  "rose-pine-dawn",
+  "tokyo-night",
+  "tokyo-night-day",
+  "kanagawa",
+  "kanagawa-lotus",
+  "nord",
+  "dracula",
+] as const;
 export type Theme = (typeof THEMES)[number];
 
 export const TAB_TRANSITIONS = ["none", "crossfade", "slide"] as const;
@@ -11,43 +24,43 @@ export const KIOSK_CONTROLS_SIZES = ["s", "m", "l"] as const;
 export type KioskControlsSize = (typeof KIOSK_CONTROLS_SIZES)[number];
 
 export type DisplayMatch =
-	| { kind: "queryParam"; key: string; value: string }
-	| { kind: "hostname"; value: string };
+  | { kind: "queryParam"; key: string; value: string }
+  | { kind: "hostname"; value: string };
 
 export interface Display {
-	id: string;
-	name: string;
-	match: DisplayMatch;
+  id: string;
+  name: string;
+  match: DisplayMatch;
 }
 
 export interface TimeWindow {
-	id: string;
-	name: string;
-	startTime: string;
-	endTime: string;
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
 }
 
 export interface TabWindow {
-	windowId: string;
-	days: number[];
+  windowId: string;
+  days: number[];
 }
 
 export interface Tab {
-	id: string;
-	title: string;
-	url: string;
-	icon: string | null;
-	inLoop: boolean;
-	customDuration: number | null;
-	displays: string[] | null;
-	windows: TabWindow[] | null;
+  id: string;
+  title: string;
+  url: string;
+  icon: string | null;
+  inLoop: boolean;
+  customDuration: number | null;
+  displays: string[] | null;
+  windows: TabWindow[] | null;
 }
 
 export interface Config {
-	playbackInterval: number;
-	autoplayEnabled: boolean;
-	theme: Theme;
-	tabTransition: TabTransition;
-	kioskControls: KioskControls;
-	kioskControlsSize: KioskControlsSize;
+  playbackInterval: number;
+  autoplayEnabled: boolean;
+  theme: Theme;
+  tabTransition: TabTransition;
+  kioskControls: KioskControls;
+  kioskControlsSize: KioskControlsSize;
 }
