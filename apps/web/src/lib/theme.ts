@@ -31,6 +31,23 @@ export const THEME_LABELS: Record<Theme, string> = {
   dracula: "Dracula (Dark)",
 };
 
+// Short form of THEME_LABELS (no "(Dark)"/"(Light)" suffix) for space-constrained
+// UI like the settings swatch picker, where the mode is already shown by the swatch itself.
+export const THEME_SHORT_LABELS: Record<Theme, string> = {
+  mocha: "Mocha",
+  macchiato: "Macchiato",
+  frappe: "Frappé",
+  latte: "Latte",
+  "rose-pine": "Rosé Pine",
+  "rose-pine-dawn": "Rosé Pine Dawn",
+  "tokyo-night": "Tokyo Night",
+  "tokyo-night-day": "Tokyo Night Day",
+  kanagawa: "Kanagawa",
+  "kanagawa-lotus": "Kanagawa Lotus",
+  nord: "Nord",
+  dracula: "Dracula",
+};
+
 // Keep in sync with the inline FOUC-prevention script in apps/web/src/app.html.
 const STORAGE_KEY = "revolver-theme";
 

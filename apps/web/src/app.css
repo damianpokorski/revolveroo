@@ -4,9 +4,18 @@
 /* Never reference --rv-* colours as raw values in a component; components
    should reference the --rv-* custom properties below by name so mocha/
    macchiato/frappe/latte get different rungs of the ramp for the same
-   semantic role. */
+   semantic role.
 
-:root[data-theme="mocha"] {
+   Each block also targets .swatch-mini[data-theme="…"] so the settings theme
+   picker (settings/+page.svelte) can self-preview a theme's colours on its
+   swatch tiles regardless of the page's actual active theme. Keep the
+   :root[data-theme="…"] selector (not just [data-theme="…"]) on every block —
+   it needs to outrank the unconditional :root fallback below it, and a bare
+   attribute selector has the same specificity as that fallback and loses the
+   source-order tiebreak, silently pinning the whole app to mocha. */
+
+:root[data-theme="mocha"],
+.swatch-mini[data-theme="mocha"] {
   --rv-bg: #1e1e2e;
   --rv-bg-sunken: #11111b;
   --rv-panel: #181825;
@@ -35,7 +44,8 @@
   color-scheme: dark;
 }
 
-:root[data-theme="macchiato"] {
+:root[data-theme="macchiato"],
+.swatch-mini[data-theme="macchiato"] {
   --rv-bg: #24273a;
   --rv-bg-sunken: #181926;
   --rv-panel: #1e2030;
@@ -64,7 +74,8 @@
   color-scheme: dark;
 }
 
-:root[data-theme="frappe"] {
+:root[data-theme="frappe"],
+.swatch-mini[data-theme="frappe"] {
   --rv-bg: #303446;
   --rv-bg-sunken: #232634;
   --rv-panel: #292c3c;
@@ -93,7 +104,8 @@
   color-scheme: dark;
 }
 
-:root[data-theme="latte"] {
+:root[data-theme="latte"],
+.swatch-mini[data-theme="latte"] {
   --rv-bg: #eff1f5;
   --rv-bg-sunken: #dce0e8;
   --rv-panel: #e6e9ef;
@@ -122,7 +134,8 @@
   color-scheme: light;
 }
 
-:root[data-theme="rose-pine"] {
+:root[data-theme="rose-pine"],
+.swatch-mini[data-theme="rose-pine"] {
   --rv-bg: #191724;
   --rv-bg-sunken: #14121f;
   --rv-panel: #1f1d2e;
@@ -151,7 +164,8 @@
   color-scheme: dark;
 }
 
-:root[data-theme="rose-pine-dawn"] {
+:root[data-theme="rose-pine-dawn"],
+.swatch-mini[data-theme="rose-pine-dawn"] {
   --rv-bg: #faf4ed;
   --rv-bg-sunken: #f2e9e1;
   --rv-panel: #fffaf3;
@@ -180,7 +194,8 @@
   color-scheme: light;
 }
 
-:root[data-theme="tokyo-night"] {
+:root[data-theme="tokyo-night"],
+.swatch-mini[data-theme="tokyo-night"] {
   --rv-bg: #1a1b26;
   --rv-bg-sunken: #16161e;
   --rv-panel: #1f2335;
@@ -209,7 +224,8 @@
   color-scheme: dark;
 }
 
-:root[data-theme="tokyo-night-day"] {
+:root[data-theme="tokyo-night-day"],
+.swatch-mini[data-theme="tokyo-night-day"] {
   --rv-bg: #e1e2e7;
   --rv-bg-sunken: #d5d6db;
   --rv-panel: #e9e9ee;
@@ -238,7 +254,8 @@
   color-scheme: light;
 }
 
-:root[data-theme="kanagawa"] {
+:root[data-theme="kanagawa"],
+.swatch-mini[data-theme="kanagawa"] {
   --rv-bg: #1f1f28;
   --rv-bg-sunken: #16161d;
   --rv-panel: #1a1a22;
@@ -267,7 +284,8 @@
   color-scheme: dark;
 }
 
-:root[data-theme="kanagawa-lotus"] {
+:root[data-theme="kanagawa-lotus"],
+.swatch-mini[data-theme="kanagawa-lotus"] {
   --rv-bg: #f7f1e0;
   --rv-bg-sunken: #ece3c8;
   --rv-panel: #f4eeda;
@@ -296,7 +314,8 @@
   color-scheme: light;
 }
 
-:root[data-theme="nord"] {
+:root[data-theme="nord"],
+.swatch-mini[data-theme="nord"] {
   --rv-bg: #2e3440;
   --rv-bg-sunken: #262b35;
   --rv-panel: #3b4252;
@@ -325,7 +344,8 @@
   color-scheme: dark;
 }
 
-:root[data-theme="dracula"] {
+:root[data-theme="dracula"],
+.swatch-mini[data-theme="dracula"] {
   --rv-bg: #282a36;
   --rv-bg-sunken: #1e1f29;
   --rv-panel: #2b2d3a;

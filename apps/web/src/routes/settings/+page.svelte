@@ -14,7 +14,12 @@ import {
 import { markSaved, markSaving } from "$lib/autosaveStatus.svelte";
 import Icon from "$lib/icons/Icon.svelte";
 import { TAB_TRANSITION_LABELS, TAB_TRANSITIONS } from "$lib/tabTransition";
-import { applyTheme, THEME_LABELS, THEMES } from "$lib/theme";
+import {
+	applyTheme,
+	THEME_LABELS,
+	THEME_SHORT_LABELS,
+	THEMES,
+} from "$lib/theme";
 import DisplayForm from "../../components/DisplayForm.svelte";
 import TabForm from "../../components/TabForm.svelte";
 import TimeWindowForm from "../../components/TimeWindowForm.svelte";
@@ -514,21 +519,31 @@ function scheduleConfigSave() {
 					</label>
 					<label>
 						<span class="rv-section-label">Theme</span>
-						<select
-							class="rv-select"
-							data-testid="theme-select"
-							value={config.theme}
-							onchange={(e) => {
-								if (!config) return;
-								config.theme = e.currentTarget.value as ConfigData["theme"];
-								applyTheme(config.theme);
-								scheduleConfigSave();
-							}}
-						>
+						<div class="swatch-grid" data-testid="theme-swatch-grid">
 							{#each THEMES as t (t)}
-								<option value={t}>{THEME_LABELS[t]}</option>
+								<button
+									type="button"
+									class="swatch-tile"
+									class:active={config.theme === t}
+									title={THEME_LABELS[t]}
+									data-testid="theme-swatch-{t}"
+									onclick={() => {
+										if (!config) return;
+										config.theme = t;
+										applyTheme(t);
+										scheduleConfigSave();
+									}}
+								>
+									<span class="swatch-check" aria-hidden="true">
+										<Icon name="check" size={10} />
+									</span>
+									<span class="swatch-mini" data-theme={t} aria-hidden="true">
+										<i></i><i></i><i></i><i></i>
+									</span>
+									<span class="swatch-tile-label">{THEME_SHORT_LABELS[t]}</span>
+								</button>
 							{/each}
-						</select>
+						</div>
 					</label>
 					<label>
 						<span class="rv-section-label">Transition</span>
@@ -719,6 +734,76 @@ function scheduleConfigSave() {
 		gap: 0.5rem;
 		color: var(--rv-text);
 		font-size: 13.5px;
+	}
+
+	.swatch-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+		gap: 0.5rem;
+	}
+	.swatch-tile {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.5rem 0.25rem 0.45rem;
+		border-radius: 4px;
+		border: 1.5px solid var(--rv-border-strong);
+		background: var(--rv-panel);
+		color: var(--rv-text-2);
+		font-family: inherit;
+		font-size: 10px;
+		line-height: 1.15;
+		text-align: center;
+		cursor: pointer;
+	}
+	.swatch-tile:hover {
+		border-color: var(--rv-accent-edge);
+	}
+	.swatch-tile.active {
+		border-color: var(--rv-accent);
+		box-shadow: 0 0 0 1px var(--rv-accent) inset;
+	}
+	.swatch-mini {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		grid-template-rows: 1fr 1fr;
+		gap: 2px;
+		width: 30px;
+		height: 30px;
+		border-radius: 6px;
+		overflow: hidden;
+		border: 1px solid var(--rv-border-strong);
+	}
+	.swatch-mini i:nth-child(1) {
+		background: var(--rv-bg);
+	}
+	.swatch-mini i:nth-child(2) {
+		background: var(--rv-panel);
+	}
+	.swatch-mini i:nth-child(3) {
+		background: var(--rv-accent);
+	}
+	.swatch-mini i:nth-child(4) {
+		background: var(--rv-fail);
+	}
+	.swatch-check {
+		position: absolute;
+		top: -6px;
+		right: -6px;
+		width: 16px;
+		height: 16px;
+		border-radius: 50%;
+		background: var(--rv-accent);
+		color: var(--rv-accent-ink);
+		display: none;
+		align-items: center;
+		justify-content: center;
+		border: 2px solid var(--rv-panel);
+	}
+	.swatch-tile.active .swatch-check {
+		display: flex;
 	}
 
 	.kiosk-controls-row {
