@@ -24,9 +24,16 @@ RUN bun install --frozen-lockfile
 RUN bun run fonts:setup
 RUN bun run build
 
+# ── caddy-bin: binary only, for the optional tab-proxy feature ────────────────
+FROM caddy:2 AS caddy-bin
+
 # ── runtime ───────────────────────────────────────────────────────────────────
 FROM oven/bun:1.3.14 AS runtime
 WORKDIR /app
+
+# Caddy is the sole published port in this image (see CaddyProxyService) — the
+# app itself binds loopback-only and Caddy is spawned as its subprocess.
+COPY --from=caddy-bin /usr/bin/caddy /usr/local/bin/caddy
 
 # node_modules — isolated linker puts each workspace's deps in its own node_modules
 COPY --from=deps /app/node_modules                  ./node_modules
@@ -54,15 +61,21 @@ ENV NODE_ENV=production
 ENV DATA_FILE=/data/revolver.yaml
 # Directory from which to serve the static SvelteKit build
 ENV PUBLIC_DIR=/app/public
+# Internal app port — loopback-only; Caddy (below) is the container's real entrypoint
 ENV PORT=3000
+# Caddy's published port. PROXY_DOMAIN is deliberately left unset — the optional
+# per-tab reverse-proxy feature is opt-in (see CaddyProxyService / README).
+ENV PROXY_PORT=80
+ENV CADDY_ADMIN_PORT=2019
 
-EXPOSE 3000
+EXPOSE 80
 
 # Persist the YAML data file across container restarts
 VOLUME /data
 
-# Uses Bun's own fetch rather than curl, since it's guaranteed present in this image
-# (it's the container's own runtime) without needing an extra apt-get install.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD bun -e "fetch('http://localhost:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+# Hits Caddy (the real entrypoint), not the app port directly, so container
+# health reflects what's actually reachable. Uses Bun's own fetch rather than
+# curl, since it's guaranteed present in this image without an extra apt-get install.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD bun -e "fetch('http://localhost:80/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
 CMD ["bun", "apps/server/src/index.ts"]

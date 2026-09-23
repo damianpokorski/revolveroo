@@ -54,6 +54,10 @@ export interface Tab {
   customDuration: number | null;
   displays: string[] | null;
   windows: TabWindow[] | null;
+  // Route this tab's iframe through the optional Caddy reverse proxy
+  // (http://{id}.{PROXY_DOMAIN}) instead of loading `url` directly — for
+  // services that refuse to be framed. No-op if PROXY_DOMAIN isn't configured.
+  useProxy: boolean;
 }
 
 export interface Config {

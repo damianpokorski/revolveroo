@@ -10,43 +10,57 @@ const serverDir = `${webDir}../server`;
 // Instead, wipe any leftover file first, then let the server's own boot sequence (which
 // creates the default data file if missing) do the seeding — the `url` readiness check
 // then only succeeds once that's genuinely done, no race possible.
-const serverCommand = [
-	`rm -f ${E2E_DATA_FILE_PATH}`,
-	"bun run --hot src/index.ts",
-].join(" && ");
+const serverCommand = [`rm -f ${E2E_DATA_FILE_PATH}`, "bun run --hot src/index.ts"].join(" && ");
 
 export default defineConfig({
-	testDir: "./e2e",
-	// The disposable data file is shared for the whole run — keep specs serial so they
-	// can't race each other on the singleton config section.
-	workers: 1,
-	fullyParallel: false,
-	retries: 0,
-	reporter: "list",
-	use: {
-		baseURL: "http://localhost:5173",
-		trace: "retain-on-failure",
-	},
-	projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-	webServer: [
-		{
-			command: serverCommand,
-			cwd: serverDir,
-			url: "http://localhost:3000/api/health",
-			reuseExistingServer: false,
-			env: {
-				DATA_FILE: E2E_DATA_FILE_PATH,
-			},
-			stdout: "pipe",
-			stderr: "pipe",
-		},
-		{
-			command: "bun run dev",
-			cwd: webDir,
-			url: "http://localhost:5173",
-			reuseExistingServer: false,
-			stdout: "pipe",
-			stderr: "pipe",
-		},
-	],
+  testDir: "./e2e",
+  // The disposable data file is shared for the whole run — keep specs serial so they
+  // can't race each other on the singleton config section.
+  workers: 1,
+  fullyParallel: false,
+  retries: 0,
+  reporter: "list",
+  // Points every seeded tab at the local fixture server instead of a live
+  // network host — see global-setup.ts.
+  globalSetup: "./e2e/global-setup.ts",
+  use: {
+    baseURL: "http://localhost:5173",
+    trace: "retain-on-failure",
+  },
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  webServer: [
+    {
+      command: serverCommand,
+      cwd: serverDir,
+      url: "http://localhost:3000/api/health",
+      reuseExistingServer: false,
+      env: {
+        DATA_FILE: E2E_DATA_FILE_PATH,
+        // Additive-only in dev/e2e (see CaddyProxyService) — this spawns Caddy
+        // solely to carry proxy.spec.ts's per-tab subdomain traffic. A public
+        // wildcard-to-loopback DNS name avoids needing /etc/hosts edits or sudo
+        // in CI. A non-privileged port, since CI runners aren't root.
+        PROXY_DOMAIN: "localtest.me",
+        PROXY_PORT: "8080",
+      },
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+    {
+      command: "bun run dev",
+      cwd: webDir,
+      url: "http://localhost:5173",
+      reuseExistingServer: false,
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+    {
+      command: "bun run e2e/fixture-server.ts",
+      cwd: webDir,
+      url: "http://localhost:4310/friendly.html",
+      reuseExistingServer: false,
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+  ],
 });

@@ -9,6 +9,7 @@ import {
 	type WindowData,
 } from "$lib/api";
 import Icon from "$lib/icons/Icon.svelte";
+import { iframeSrc } from "$lib/proxy";
 import { DEFAULT_TAB_TRANSITION, type TabTransition } from "$lib/tabTransition";
 import { applyTheme } from "$lib/theme";
 import { pushToast } from "$lib/toast.svelte";
@@ -33,6 +34,8 @@ let windowsById = $state(new Map<string, WindowData>());
 let displayId = $state<string | null>(null);
 let resolvedDisplay = $state<DisplayData | null>(null);
 let tabHealth = $state<TabHealthData>({});
+let proxyDomain = $state<string | null>(null);
+let proxyPort = $state(80);
 
 // --- Config ---
 let playbackInterval = $state(5000);
@@ -87,6 +90,16 @@ async function refreshData() {
 	}
 }
 onMount(refreshData);
+
+// Deployment-level and static for the server's lifetime — fetched once,
+// separately from the polled/SSE-refreshed data above.
+onMount(async () => {
+	const healthResult = await api.api.health.get();
+	if (!healthResult.error) {
+		proxyDomain = healthResult.data.proxyDomain;
+		proxyPort = healthResult.data.proxyPort;
+	}
+});
 
 // Fallback poll: the SSE "change" listener below only re-fetches when data
 // actually changes, so an idle-but-healthy server would never refresh
@@ -453,7 +466,7 @@ const BANNER_COPY: Record<string, string> = {
 			{#key reloadNonce[tab.id] ?? 0}
 				<iframe
 					title={tab.title}
-					src={tab.url}
+					src={iframeSrc(tab, proxyDomain, proxyPort)}
 					class="frame"
 					class:active={i === activeTabIndex}
 					class:leaving={i === previousTabIndex}

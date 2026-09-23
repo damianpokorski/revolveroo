@@ -46,32 +46,34 @@ revolver/
 
 ## Scripts
 
-| Command | Description |
-|---|---|
-| `bun run dev` | Start web and server in development mode |
-| `bun run build` | Build all apps |
-| `bun run fonts:setup` | One-time: fetch the self-hosted Nerd Font used by the tab icon picker |
-| `bun run check` | Run Biome lint + format checks, applying fixes |
-| `bun run lint` | Run Biome lint + format checks without writing (used by CI) |
-| `bun run format` | Run Biome's formatter only, applying fixes |
-| `bun run staged` | Run Biome against staged files only, applying fixes |
-| `bun run check-types` | TypeScript type-check across all packages |
-| `bun run check-versions` | Cross-check the pinned Bun version across `mise.toml`/`package.json`/`Dockerfile` |
-| `bun run test` | Run server unit tests |
-| `bun run test:coverage` | Run server unit tests with coverage reporting |
-| `bun run test:e2e:install` | One-time: download the Chromium browser Playwright needs |
-| `bun run test:e2e` | Run the Playwright end-to-end suite |
-| `bun run test:e2e:visual` | Run just the visual regression specs |
-| `bun run test:e2e:visual:update` | Regenerate visual regression baseline screenshots |
-| `bun run release:dry` | Dry-run semantic-release locally without publishing anything |
-| `bun run docker` | Build the production Docker image and run it locally |
-| `bun run docker:stop` | Stop and remove the local Docker container started by `docker` |
+| Command                          | Description                                                                       |
+| -------------------------------- | --------------------------------------------------------------------------------- |
+| `bun run dev`                    | Start web and server in development mode                                          |
+| `bun run build`                  | Build all apps                                                                    |
+| `bun run fonts:setup`            | One-time: fetch the self-hosted Nerd Font used by the tab icon picker             |
+| `bun run check`                  | Run Biome lint + format checks, applying fixes                                    |
+| `bun run lint`                   | Run Biome lint + format checks without writing (used by CI)                       |
+| `bun run format`                 | Run Biome's formatter only, applying fixes                                        |
+| `bun run staged`                 | Run Biome against staged files only, applying fixes                               |
+| `bun run check-types`            | TypeScript type-check across all packages                                         |
+| `bun run check-versions`         | Cross-check the pinned Bun version across `mise.toml`/`package.json`/`Dockerfile` |
+| `bun run test`                   | Run server unit tests                                                             |
+| `bun run test:coverage`          | Run server unit tests with coverage reporting                                     |
+| `bun run test:e2e:install`       | One-time: download the Chromium browser Playwright needs                          |
+| `bun run test:e2e`               | Run the Playwright end-to-end suite                                               |
+| `bun run test:e2e:visual`        | Run just the visual regression specs                                              |
+| `bun run test:e2e:visual:update` | Regenerate visual regression baseline screenshots                                 |
+| `bun run release:dry`            | Dry-run semantic-release locally without publishing anything                      |
+| `bun run docker`                 | Build the production Docker image and run it locally                              |
+| `bun run docker:stop`            | Stop and remove the local Docker container started by `docker`                    |
 
 ---
 
 ## End-to-end testing
 
 Playwright specs live in `apps/web/e2e/`, covering the flows that would be costly to break silently: tab CRUD, conditions, kiosk autoplay rotation, and playback controls.
+
+**Additional prerequisite: a local `caddy` (v2.x) binary on `PATH`.** The e2e server process spawns Caddy for its optional per-tab reverse-proxy feature — always, not just for `proxy.spec.ts` (see `apps/web/playwright.config.ts`'s `PROXY_DOMAIN`/`PROXY_PORT` env). Everyday `bun run dev` does **not** need this — Caddy is only ever spawned in dev/e2e when `PROXY_DOMAIN` is set.
 
 ```bash
 # One-time: download the Chromium browser
@@ -122,16 +124,16 @@ Time-range conditions (day-of-week/time-of-day tab visibility) are already built
 
 ## Tech stack
 
-| Package | Role |
-|---|---|
-| [Bun](https://bun.sh) | Runtime and package manager |
-| [SvelteKit](https://kit.svelte.dev) | Frontend framework — file-based routing, reactive UI |
-| [Elysia](https://elysiajs.com) | Type-safe HTTP framework for the API server |
-| [yaml](https://eemeli.org/yaml/) | Comment-preserving YAML parsing/serialization for the data file |
-| [Biome](https://biomejs.dev) | Linting and formatting (replaces ESLint + Prettier) |
-| [Vite+](https://viteplus.dev) | Monorepo task runner built on Vite/Rolldown |
-| [svelte-dnd-action](https://github.com/isaacs/svelte-dnd-action) | Drag-and-drop reordering in the settings UI |
-| [Catppuccin](https://catppuccin.com) | CSS design token palette (`--ctp-*` variables), with four selectable flavors |
-| [Zod](https://zod.dev) | OpenAPI JSON-schema generation and env-var validation (route validation itself uses Elysia's TypeBox) |
-| [Playwright](https://playwright.dev) | End-to-end browser testing, including visual regression |
-| [commitlint](https://commitlint.js.org) / [semantic-release](https://semantic-release.gitbook.io) | Conventional Commit enforcement and automated versioning/release |
+| Package                                                                                           | Role                                                                                                  |
+| ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| [Bun](https://bun.sh)                                                                             | Runtime and package manager                                                                           |
+| [SvelteKit](https://kit.svelte.dev)                                                               | Frontend framework — file-based routing, reactive UI                                                  |
+| [Elysia](https://elysiajs.com)                                                                    | Type-safe HTTP framework for the API server                                                           |
+| [yaml](https://eemeli.org/yaml/)                                                                  | Comment-preserving YAML parsing/serialization for the data file                                       |
+| [Biome](https://biomejs.dev)                                                                      | Linting and formatting (replaces ESLint + Prettier)                                                   |
+| [Vite+](https://viteplus.dev)                                                                     | Monorepo task runner built on Vite/Rolldown                                                           |
+| [svelte-dnd-action](https://github.com/isaacs/svelte-dnd-action)                                  | Drag-and-drop reordering in the settings UI                                                           |
+| [Catppuccin](https://catppuccin.com)                                                              | CSS design token palette (`--ctp-*` variables), with four selectable flavors                          |
+| [Zod](https://zod.dev)                                                                            | OpenAPI JSON-schema generation and env-var validation (route validation itself uses Elysia's TypeBox) |
+| [Playwright](https://playwright.dev)                                                              | End-to-end browser testing, including visual regression                                               |
+| [commitlint](https://commitlint.js.org) / [semantic-release](https://semantic-release.gitbook.io) | Conventional Commit enforcement and automated versioning/release                                      |

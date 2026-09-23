@@ -11,219 +11,214 @@ const createMock = mock();
 const updateMock = mock();
 const deleteMock = mock();
 const reorderMock = mock();
-const allRepoMocks = [
-	findAllMock,
-	findByIdMock,
-	createMock,
-	updateMock,
-	deleteMock,
-	reorderMock,
-];
+const allRepoMocks = [findAllMock, findByIdMock, createMock, updateMock, deleteMock, reorderMock];
 
 const fakeRepo = {
-	findAll: findAllMock,
-	findById: findByIdMock,
-	create: createMock,
-	update: updateMock,
-	delete: deleteMock,
-	reorder: reorderMock,
+  findAll: findAllMock,
+  findById: findByIdMock,
+  create: createMock,
+  update: updateMock,
+  delete: deleteMock,
+  reorder: reorderMock,
 } as unknown as TabsRepository;
 
 const displayFindByIdMock = mock();
 const fakeDisplaysRepo = {
-	findById: displayFindByIdMock,
+  findById: displayFindByIdMock,
 } as unknown as DisplaysRepository;
 
 const windowFindByIdMock = mock();
 const fakeWindowsRepo = {
-	findById: windowFindByIdMock,
+  findById: windowFindByIdMock,
 } as unknown as WindowsRepository;
 
 const service = new TabsService(fakeRepo, fakeDisplaysRepo, fakeWindowsRepo);
 
 const sampleTab: Tab = {
-	id: "example",
-	title: "Example",
-	url: "https://example.com",
-	inLoop: true,
-	displays: null,
-	windows: null,
-	customDuration: null,
-	icon: null,
+  id: "example",
+  title: "Example",
+  url: "https://example.com",
+  inLoop: true,
+  displays: null,
+  windows: null,
+  customDuration: null,
+  icon: null,
+  useProxy: false,
 };
 
 beforeEach(() => {
-	for (const m of allRepoMocks) m.mockReset();
-	displayFindByIdMock.mockReset();
-	windowFindByIdMock.mockReset();
-	displayFindByIdMock.mockResolvedValue({ id: "office", name: "Office" });
-	windowFindByIdMock.mockResolvedValue({
-		id: "business-hours",
-		name: "Business hours",
-	});
+  for (const m of allRepoMocks) m.mockReset();
+  displayFindByIdMock.mockReset();
+  windowFindByIdMock.mockReset();
+  displayFindByIdMock.mockResolvedValue({ id: "office", name: "Office" });
+  windowFindByIdMock.mockResolvedValue({
+    id: "business-hours",
+    name: "Business hours",
+  });
 });
 
 describe("getAll", () => {
-	test("returns all tabs from the repository", async () => {
-		// Arrange
-		findAllMock.mockResolvedValue([sampleTab]);
+  test("returns all tabs from the repository", async () => {
+    // Arrange
+    findAllMock.mockResolvedValue([sampleTab]);
 
-		// Act
-		const result = await service.getAll();
+    // Act
+    const result = await service.getAll();
 
-		// Assert
-		expect(result).toEqual([sampleTab]);
-	});
+    // Assert
+    expect(result).toEqual([sampleTab]);
+  });
 });
 
 describe("getById", () => {
-	test("returns the tab when found", async () => {
-		// Arrange
-		findByIdMock.mockResolvedValue(sampleTab);
+  test("returns the tab when found", async () => {
+    // Arrange
+    findByIdMock.mockResolvedValue(sampleTab);
 
-		// Act
-		const result = await service.getById("example");
+    // Act
+    const result = await service.getById("example");
 
-		// Assert
-		expect(result).toEqual(sampleTab);
-		expect(findByIdMock).toHaveBeenCalledWith("example");
-	});
+    // Assert
+    expect(result).toEqual(sampleTab);
+    expect(findByIdMock).toHaveBeenCalledWith("example");
+  });
 
-	test("throws NotFoundError when the tab doesn't exist", async () => {
-		// Arrange
-		findByIdMock.mockResolvedValue(undefined);
+  test("throws NotFoundError when the tab doesn't exist", async () => {
+    // Arrange
+    findByIdMock.mockResolvedValue(undefined);
 
-		// Act & Assert
-		await expect(service.getById("missing")).rejects.toThrow(NotFoundError);
-	});
+    // Act & Assert
+    await expect(service.getById("missing")).rejects.toThrow(NotFoundError);
+  });
 });
 
 describe("create", () => {
-	test("applies defaults for fields not passed in and lets the repository assign an id", async () => {
-		// Arrange
-		createMock.mockResolvedValue(sampleTab);
+  test("applies defaults for fields not passed in and lets the repository assign an id", async () => {
+    // Arrange
+    createMock.mockResolvedValue(sampleTab);
 
-		// Act
-		const result = await service.create({
-			title: "Example",
-			url: "https://example.com",
-		});
+    // Act
+    const result = await service.create({
+      title: "Example",
+      url: "https://example.com",
+    });
 
-		// Assert
-		expect(createMock).toHaveBeenCalledWith({
-			title: "Example",
-			url: "https://example.com",
-			inLoop: true,
-			displays: null,
-			windows: null,
-			customDuration: null,
-			icon: null,
-		});
-		expect(result).toEqual(sampleTab);
-	});
+    // Assert
+    expect(createMock).toHaveBeenCalledWith({
+      title: "Example",
+      url: "https://example.com",
+      inLoop: true,
+      displays: null,
+      windows: null,
+      customDuration: null,
+      icon: null,
+      useProxy: false,
+    });
+    expect(result).toEqual(sampleTab);
+  });
 
-	test("throws BadRequestError when a display id doesn't resolve", async () => {
-		// Arrange
-		displayFindByIdMock.mockResolvedValue(undefined);
+  test("throws BadRequestError when a display id doesn't resolve", async () => {
+    // Arrange
+    displayFindByIdMock.mockResolvedValue(undefined);
 
-		// Act & Assert
-		await expect(
-			service.create({
-				title: "Example",
-				url: "https://example.com",
-				displays: ["bogus"],
-			}),
-		).rejects.toThrow(BadRequestError);
-		expect(createMock).not.toHaveBeenCalled();
-	});
+    // Act & Assert
+    await expect(
+      service.create({
+        title: "Example",
+        url: "https://example.com",
+        displays: ["bogus"],
+      }),
+    ).rejects.toThrow(BadRequestError);
+    expect(createMock).not.toHaveBeenCalled();
+  });
 
-	test("throws BadRequestError when a window id doesn't resolve", async () => {
-		// Arrange
-		windowFindByIdMock.mockResolvedValue(undefined);
+  test("throws BadRequestError when a window id doesn't resolve", async () => {
+    // Arrange
+    windowFindByIdMock.mockResolvedValue(undefined);
 
-		// Act & Assert
-		await expect(
-			service.create({
-				title: "Example",
-				url: "https://example.com",
-				windows: [{ windowId: "bogus", days: [] }],
-			}),
-		).rejects.toThrow(BadRequestError);
-		expect(createMock).not.toHaveBeenCalled();
-	});
+    // Act & Assert
+    await expect(
+      service.create({
+        title: "Example",
+        url: "https://example.com",
+        windows: [{ windowId: "bogus", days: [] }],
+      }),
+    ).rejects.toThrow(BadRequestError);
+    expect(createMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("update", () => {
-	test("updates an existing tab", async () => {
-		// Arrange
-		findByIdMock.mockResolvedValue(sampleTab);
-		updateMock.mockResolvedValue({ ...sampleTab, title: "Updated" });
+  test("updates an existing tab", async () => {
+    // Arrange
+    findByIdMock.mockResolvedValue(sampleTab);
+    updateMock.mockResolvedValue({ ...sampleTab, title: "Updated" });
 
-		// Act
-		const result = await service.update("example", {
-			title: "Updated",
-			url: sampleTab.url,
-		});
+    // Act
+    const result = await service.update("example", {
+      title: "Updated",
+      url: sampleTab.url,
+    });
 
-		// Assert
-		expect(result.title).toBe("Updated");
-	});
+    // Assert
+    expect(result.title).toBe("Updated");
+  });
 
-	test("throws NotFoundError when the tab doesn't exist", async () => {
-		// Arrange
-		findByIdMock.mockResolvedValue(undefined);
+  test("throws NotFoundError when the tab doesn't exist", async () => {
+    // Arrange
+    findByIdMock.mockResolvedValue(undefined);
 
-		// Act & Assert
-		await expect(
-			service.update("missing", { title: "X", url: "https://example.com" }),
-		).rejects.toThrow(NotFoundError);
-		expect(updateMock).not.toHaveBeenCalled();
-	});
+    // Act & Assert
+    await expect(
+      service.update("missing", { title: "X", url: "https://example.com" }),
+    ).rejects.toThrow(NotFoundError);
+    expect(updateMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("delete", () => {
-	test("deletes an existing tab", async () => {
-		// Arrange
-		findByIdMock.mockResolvedValue(sampleTab);
-		deleteMock.mockResolvedValue(sampleTab);
+  test("deletes an existing tab", async () => {
+    // Arrange
+    findByIdMock.mockResolvedValue(sampleTab);
+    deleteMock.mockResolvedValue(sampleTab);
 
-		// Act
-		const result = await service.delete("example");
+    // Act
+    const result = await service.delete("example");
 
-		// Assert
-		expect(result).toEqual(sampleTab);
-	});
+    // Assert
+    expect(result).toEqual(sampleTab);
+  });
 
-	test("throws NotFoundError when the tab doesn't exist", async () => {
-		// Arrange
-		findByIdMock.mockResolvedValue(undefined);
+  test("throws NotFoundError when the tab doesn't exist", async () => {
+    // Arrange
+    findByIdMock.mockResolvedValue(undefined);
 
-		// Act & Assert
-		await expect(service.delete("missing")).rejects.toThrow(NotFoundError);
-		expect(deleteMock).not.toHaveBeenCalled();
-	});
+    // Act & Assert
+    await expect(service.delete("missing")).rejects.toThrow(NotFoundError);
+    expect(deleteMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("reorder", () => {
-	test("reorders when the ids match the existing set exactly", async () => {
-		// Arrange
-		findAllMock.mockResolvedValue([sampleTab]);
-		reorderMock.mockResolvedValue([sampleTab]);
+  test("reorders when the ids match the existing set exactly", async () => {
+    // Arrange
+    findAllMock.mockResolvedValue([sampleTab]);
+    reorderMock.mockResolvedValue([sampleTab]);
 
-		// Act
-		const result = await service.reorder(["example"]);
+    // Act
+    const result = await service.reorder(["example"]);
 
-		// Assert
-		expect(reorderMock).toHaveBeenCalledWith(["example"]);
-		expect(result).toEqual([sampleTab]);
-	});
+    // Assert
+    expect(reorderMock).toHaveBeenCalledWith(["example"]);
+    expect(result).toEqual([sampleTab]);
+  });
 
-	test("throws BadRequestError when the ids don't match the existing set", async () => {
-		// Arrange
-		findAllMock.mockResolvedValue([sampleTab]);
+  test("throws BadRequestError when the ids don't match the existing set", async () => {
+    // Arrange
+    findAllMock.mockResolvedValue([sampleTab]);
 
-		// Act & Assert
-		await expect(service.reorder(["bogus"])).rejects.toThrow(BadRequestError);
-		expect(reorderMock).not.toHaveBeenCalled();
-	});
+    // Act & Assert
+    await expect(service.reorder(["bogus"])).rejects.toThrow(BadRequestError);
+    expect(reorderMock).not.toHaveBeenCalled();
+  });
 });

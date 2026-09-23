@@ -26,6 +26,7 @@ Revolveroo is built for a **house full of screens**, not just one: a single orde
 - **Slimline / expanded HUD** — a compact strip when a display has a lot of tabs in its loop, a full glyph grid when it doesn't (or force either mode)
 - **Overview** — a read-only `/overview` page showing which displays are online, what's currently on screen, and a tabs × displays grid of where everything lands
 - **Health-aware autoplay** — a tab whose URL is failing is skipped automatically instead of showing a blank frame, with a failure card explaining what's wrong and what happens next
+- **Optional per-tab reverse proxy** — a per-tab toggle routes a stubborn service's iframe through Revolveroo's own bundled Caddy proxy, which strips the `X-Frame-Options`/CSP headers refusing to be framed, instead of leaving "open in a new tab" as the only option
 
 ---
 
@@ -36,12 +37,12 @@ Revolveroo is built for a **house full of screens**, not just one: a single orde
 Versioned images are published to GHCR on every release — no build step required:
 
 ```bash
-docker run -d --name revolveroo -p 3000:3000 -v revolveroo-data:/data ghcr.io/damianpokorski/revolveroo-draft:latest
+docker run -d --name revolveroo -p 80:80 -v revolveroo-data:/data ghcr.io/damianpokorski/revolveroo-draft:latest
 ```
 
 Pin a specific version (e.g. `ghcr.io/damianpokorski/revolveroo-draft:1.4.0`) instead of `latest` if you want reproducible upgrades — see [Releases](https://github.com/damianpokorski/revolveroo-draft/releases) for the changelog.
 
-A default data file (`revolver.yaml`, inside the `revolveroo-data` volume) is created automatically on first boot, seeded with a few example tabs, a Display, and some time windows to explore — no separate setup step needed. Revolveroo is reachable at a single address, `http://localhost:3000`: the web UI and API are served from the same origin, so there's nothing else to expose.
+A default data file (`revolver.yaml`, inside the `revolveroo-data` volume) is created automatically on first boot, seeded with a few example tabs, a Display, and some time windows to explore — no separate setup step needed. Revolveroo is reachable at a single address, `http://localhost`: the web UI and API are served from the same origin (via the app's own bundled Caddy — see "Embedding services that block iframing" below), so there's nothing else to expose.
 
 Want to run Revolveroo from source instead — for development, or to build the image yourself? See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
@@ -55,7 +56,7 @@ An older data file (pre-Display/TimeWindow model) is migrated automatically on f
 
 ## Deploying behind a reverse proxy
 
-The production Docker image serves the web UI and API from the same origin, so the web UI automatically talks to whatever host/protocol served the page — no application configuration is needed behind a reverse proxy. A minimal example terminating HTTPS for a real domain with an external Caddy instance (Caddy provisions the certificate automatically via Let's Encrypt):
+The production Docker image serves the web UI and API from the same origin (port 80, Revolveroo's own bundled Caddy — see below), so the web UI automatically talks to whatever host/protocol served the page — no application configuration is needed behind a reverse proxy. A minimal example terminating HTTPS for a real domain with a separate, _external_ Caddy instance in front (Caddy provisions the certificate automatically via Let's Encrypt) — the bundled Caddy inside the Revolveroo image is deliberately plain-HTTP-only, so a real public domain still needs something like this in front of it:
 
 ```yaml
 # docker-compose.yml
@@ -64,7 +65,7 @@ services:
     image: ghcr.io/damianpokorski/revolveroo-draft:latest # or a pinned version
     restart: unless-stopped
     expose:
-      - "3000"
+      - "80"
     volumes:
       - ./revolverooo:/data
 
@@ -88,11 +89,25 @@ volumes:
 ```
 # Caddyfile
 revolveroo.example.com {
-	reverse_proxy revolveroo:3000
+	reverse_proxy revolveroo:80
 }
 ```
 
-`revolveroo` doesn't publish any port to the host here — only `expose`s `3000` on the compose network, since the external `caddy` service is the only thing meant to reach it.
+`revolveroo` doesn't publish any port to the host here — only `expose`s `80` on the compose network, since the external `caddy` service is the only thing meant to reach it.
+
+---
+
+## Embedding services that block iframing
+
+Some self-hosted dashboards send `X-Frame-Options`/CSP headers that refuse to be embedded in an iframe at all — the usual workaround is running a separate reverse proxy in front of that one app just to strip those headers. Revolveroo can do this itself instead, using the same Caddy instance that already fronts the app (see above): a per-tab toggle routes that tab's traffic through a `{tabId}.{PROXY_DOMAIN}` subdomain, which Caddy reverse-proxies to the tab's real URL while stripping `X-Frame-Options` and the CSP `frame-ancestors` directive. This is entirely **optional** — tabs default to loading their URL directly, exactly as before.
+
+To enable it:
+
+1. Set the `PROXY_DOMAIN` environment variable on the container (e.g. `PROXY_DOMAIN=revolveroo.media.server`, matching whatever local naming convention your network already uses for `.media.server`/`.home.lan`-style hosts).
+2. Add a one-time wildcard DNS record on your own router/DNS server/hosts file: `*.revolveroo.media.server → <the container's address>`. Revolveroo doesn't manage this for you — it's plain LAN DNS, no different from pointing any other hostname at the container.
+3. In a tab's edit form, check **Route through proxy**. Nothing else to publish or configure — every proxied tab shares Revolveroo's one published port.
+
+The bundled proxy is plain HTTP only (no TLS) — it's meant for LAN use, same as the rest of Revolveroo. If the app itself is served over HTTPS by an external front proxy, embedding a plain-HTTP proxied subdomain in that page will hit the browser's mixed-content block; in that setup, proxied tabs are best left off, or the external proxy extended to also terminate TLS for the wildcard subdomain.
 
 ---
 
@@ -100,7 +115,7 @@ revolveroo.example.com {
 
 ### 1. Name your displays
 
-Open `http://localhost:3000/settings` and add a **Display** for each physical screen — give it a name and a match rule (a query param like `room=office`, or a hostname). The Display's edit form gives you a join URL (with a QR code) to open on that screen.
+Open `http://localhost/settings` and add a **Display** for each physical screen — give it a name and a match rule (a query param like `room=office`, or a hostname). The Display's edit form gives you a join URL (with a QR code) to open on that screen.
 
 ### 2. Add your dashboards
 
@@ -114,11 +129,11 @@ Drag the grip handle on any row to reorder. Adjust playback interval, theme, tra
 
 ### 3. Open the kiosk
 
-Navigate to `http://localhost:3000` (or a display's join URL) on the display device. The carousel starts immediately. Tap the HUD in the bottom-right corner to see the full tab grid — from there you can jump to a specific tab, toggle autoplay, reload the current tab, dim the display, or go to settings.
+Navigate to `http://localhost` (or a display's join URL) on the display device. The carousel starts immediately. Tap the HUD in the bottom-right corner to see the full tab grid — from there you can jump to a specific tab, toggle autoplay, reload the current tab, dim the display, or go to settings.
 
 ### 4. Check on everything from one place
 
-`http://localhost:3000/overview` is read-only and shows: anything that needs a look (a tab targeting no display, an offline display, a blank frame), a card per display with its current tab and online status, and a grid of exactly where every tab lands across every display.
+`http://localhost/overview` is read-only and shows: anything that needs a look (a tab targeting no display, an offline display, a blank frame), a card per display with its current tab and online status, and a grid of exactly where every tab lands across every display.
 
 ---
 

@@ -78,6 +78,16 @@ jobs:
         run: bunx playwright install --with-deps chromium
         working-directory: apps/web
 
+      # Not preinstalled on GitHub-hosted runners — needed for the e2e suite's
+      # optional-proxy spec (apps/web/e2e/proxy.spec.ts), which spawns a real
+      # `caddy` process, same as CONTRIBUTING.md asks local e2e contributors to have.
+      - name: Install Caddy
+        run: |
+          curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+          curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+          sudo apt-get update
+          sudo apt-get install -y caddy
+
       # Runs against a disposable, self-seeding YAML data file — apps/web/playwright.config.ts's
       # webServer entry wipes any leftover file before listening, and the server itself
       # creates the default data file on boot, so no CI-specific setup is needed here.
@@ -97,11 +107,11 @@ jobs:
 
       - name: Docker smoke test
         run: |
-          docker run -d --name revolver-ci -p 3000:3000 -v revolver-ci-data:/data revolver:ci
+          docker run -d --name revolver-ci -p 80:80 -v revolver-ci-data:/data revolver:ci
 
           ready=false
           for _ in $(seq 1 15); do
-            if curl -sf http://localhost:3000/api/health >/dev/null; then
+            if curl -sf http://localhost:80/api/health >/dev/null; then
               ready=true
               break
             fi

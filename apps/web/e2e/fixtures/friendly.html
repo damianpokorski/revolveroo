@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Home</title>
+    <style>
+      :root {
+        --bg: #1e2030;
+        --panel: #24273a;
+        --raised: #363a4f;
+        --rule: #2f3347;
+        --text: #cad3f5;
+        --text-muted: #a5adcb;
+        --text-dim: #6e738d;
+        --accent: #8aadf4;
+        --ok: #a6da95;
+        --warn: #eed49f;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        padding: 2.5rem;
+      }
+      header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 1.75rem;
+        font-weight: 600;
+      }
+      header h1 span {
+        color: var(--text-dim);
+        font-weight: 400;
+      }
+      .clock {
+        text-align: right;
+      }
+      .clock .time {
+        font-size: 2.25rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+      }
+      .clock .date {
+        margin-top: 0.25rem;
+        color: var(--text-muted);
+        font-size: 0.95rem;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      .tile {
+        background: var(--panel);
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        padding: 1rem 1.1rem;
+      }
+      .tile .label {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .tile .value {
+        margin-top: 0.5rem;
+        font-size: 1.6rem;
+        font-weight: 600;
+      }
+      .tile .sub {
+        margin-top: 0.15rem;
+        color: var(--text-dim);
+        font-size: 0.8rem;
+      }
+      .tile.ok .value {
+        color: var(--ok);
+      }
+      main {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr;
+        gap: 1rem;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        padding: 1.25rem;
+      }
+      .panel h2 {
+        margin: 0 0 0.9rem;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+      .rooms {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+      }
+      .room {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.6rem 0.75rem;
+        background: var(--raised);
+        border-radius: 8px;
+      }
+      .room .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--text-dim);
+        flex-shrink: 0;
+      }
+      .room.on .dot {
+        background: var(--warn);
+        box-shadow: 0 0 6px var(--warn);
+      }
+      .room .name {
+        flex: 1;
+      }
+      .room .state {
+        color: var(--text-dim);
+        font-size: 0.85rem;
+      }
+      .room.on .state {
+        color: var(--warn);
+      }
+      .todo {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .todo li {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.5rem 0.6rem;
+        border-radius: 8px;
+      }
+      .todo li.done {
+        opacity: 0.55;
+      }
+      .todo .box {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        border: 1.5px solid var(--text-dim);
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+      }
+      .todo li.done .box {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--bg);
+      }
+      .todo li.done span {
+        text-decoration: line-through;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1 data-testid="fixture-marker">🏠 Home <span>· Ground Floor</span></h1>
+      <div class="clock">
+        <div class="time">14:32</div>
+        <div class="date">Wednesday, 23 September</div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="tile ok">
+        <div class="label">🌡️ Living Room</div>
+        <div class="value">21.4°C</div>
+        <div class="sub">Humidity 46%</div>
+      </div>
+      <div class="tile">
+        <div class="label">💡 Lights</div>
+        <div class="value">3 / 6</div>
+        <div class="sub">on across the house</div>
+      </div>
+      <div class="tile ok">
+        <div class="label">🔒 Security</div>
+        <div class="value">Armed</div>
+        <div class="sub">All sensors clear</div>
+      </div>
+      <div class="tile">
+        <div class="label">🌤️ Outside</div>
+        <div class="value">9°C</div>
+        <div class="sub">Partly cloudy</div>
+      </div>
+    </div>
+
+    <main>
+      <div class="panel">
+        <h2>Rooms</h2>
+        <div class="rooms">
+          <div class="room on">
+            <span class="dot"></span><span class="name">Kitchen</span
+            ><span class="state">On · 100%</span>
+          </div>
+          <div class="room on">
+            <span class="dot"></span><span class="name">Living Room</span
+            ><span class="state">On · 60%</span>
+          </div>
+          <div class="room">
+            <span class="dot"></span><span class="name">Hallway</span><span class="state">Off</span>
+          </div>
+          <div class="room on">
+            <span class="dot"></span><span class="name">Office</span
+            ><span class="state">On · 80%</span>
+          </div>
+          <div class="room">
+            <span class="dot"></span><span class="name">Bedroom</span><span class="state">Off</span>
+          </div>
+          <div class="room">
+            <span class="dot"></span><span class="name">Garage</span><span class="state">Off</span>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Today</h2>
+        <ul class="todo">
+          <li class="done"><span class="box">✓</span><span>Water the plants</span></li>
+          <li class="done"><span class="box">✓</span><span>Take out recycling</span></li>
+          <li><span class="box"></span><span>Call the plumber</span></li>
+          <li><span class="box"></span><span>Walk the dog</span></li>
+          <li><span class="box"></span><span>Restock coffee</span></li>
+        </ul>
+      </div>
+    </main>
+  </body>
+</html>

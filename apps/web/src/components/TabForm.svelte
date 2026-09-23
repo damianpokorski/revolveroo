@@ -9,12 +9,23 @@ interface Props {
 	tab?: TabData;
 	displays: DisplayData[];
 	windows: WindowData[];
+	proxyDomain: string | null;
+	proxyPort: number;
 	onsave: (body: TabBody) => void;
 	oncancel: () => void;
 	ondelete?: () => void;
 }
 
-const { tab, displays, windows, onsave, oncancel, ondelete }: Props = $props();
+const {
+	tab,
+	displays,
+	windows,
+	proxyDomain,
+	proxyPort,
+	onsave,
+	oncancel,
+	ondelete,
+}: Props = $props();
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -24,6 +35,7 @@ let icon = $state<string | null>(tab?.icon ?? null);
 let inLoop = $state(tab?.inLoop ?? true);
 let customDurationEnabled = $state(tab?.customDuration != null);
 let customDuration = $state(tab?.customDuration ?? 5000);
+let useProxy = $state(tab?.useProxy ?? false);
 
 let showsOnMode = $state<ShowsOnMode>(
 	!tab?.displays || tab.displays.length === 0 ? "every" : "specific",
@@ -164,6 +176,7 @@ function handleSave() {
 		customDuration: customDurationEnabled ? customDuration : null,
 		displays: showsOnMode === "every" ? null : selectedDisplays,
 		windows: whenMode === "any" ? null : tabWindows,
+		useProxy: proxyDomain ? useProxy : false,
 	});
 }
 </script>
@@ -217,6 +230,17 @@ function handleSave() {
 			<span class="rv-section-label">Duration ({customDuration} ms)</span>
 			<input class="rv-range" data-testid="tab-custom-duration-range" type="range" bind:value={customDuration} min="1000" max="20000" step="500" />
 		</label>
+	{/if}
+	{#if proxyDomain}
+		<label class="inline-checkbox">
+			<input class="rv-checkbox" type="checkbox" data-testid="tab-use-proxy-toggle" bind:checked={useProxy} />
+			Route through proxy
+		</label>
+		{#if useProxy}
+			<p class="rv-mono proxy-hint" data-testid="tab-proxy-hint">
+				Served via http://{tab?.id ?? "…"}.{proxyDomain}:{proxyPort} — for services that refuse to be iframed directly
+			</p>
+		{/if}
 	{/if}
 </div>
 
@@ -345,6 +369,11 @@ function handleSave() {
 		gap: 0.5rem;
 		color: var(--rv-text);
 		font-size: 13.5px;
+	}
+	.proxy-hint {
+		margin: 0;
+		font-size: 12px;
+		color: var(--rv-text-dim);
 	}
 	.radio-row {
 		display: flex;
