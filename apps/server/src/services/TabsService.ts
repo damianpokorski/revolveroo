@@ -3,6 +3,7 @@ import type { Tab, TabsRepository } from "../db/TabsRepository";
 import type { WindowsRepository } from "../db/WindowsRepository";
 import { BadRequestError, NotFoundError } from "../errors";
 import { notifyDataChanged } from "../events";
+import { isProxyableUrl } from "../proxyUrl";
 import type { TabWindow } from "../store/types";
 
 export interface TabBody {
@@ -35,6 +36,7 @@ export class TabsService {
 
   async create(data: TabBody): Promise<Tab> {
     await this.validateReferences(data);
+    this.validateProxyUrl(data.url, data.useProxy ?? false);
     const tab = await this.repo.create({
       inLoop: true,
       displays: null,
@@ -49,8 +51,11 @@ export class TabsService {
   }
 
   async update(id: string, data: TabBody): Promise<Tab> {
-    await this.getById(id);
+    const existing = await this.getById(id);
     await this.validateReferences(data);
+    // useProxy may be omitted from a PUT body, in which case the stored value
+    // stays — so a URL-only edit of an already-proxied tab is still validated.
+    this.validateProxyUrl(data.url, data.useProxy ?? existing.useProxy);
     const tab = await this.repo.update(id, data);
     if (!tab) throw new NotFoundError("Tab not found");
     notifyDataChanged();
@@ -75,6 +80,15 @@ export class TabsService {
     const tabs = await this.repo.reorder(ids);
     notifyDataChanged();
     return tabs;
+  }
+
+  // A proxied tab's URL is spliced into the generated Caddy config, so it has to
+  // be a real http(s) URL. The web form checks this too, but the API is open to
+  // direct callers — and one bad entry would otherwise break the whole reload.
+  private validateProxyUrl(url: string, useProxy: boolean): void {
+    if (useProxy && !isProxyableUrl(url)) {
+      throw new BadRequestError("A proxied tab needs a valid http(s) URL");
+    }
   }
 
   // Cross-entity validation: previously absent for the old TabCondition shape.

@@ -174,6 +174,71 @@ describe("update", () => {
     ).rejects.toThrow(NotFoundError);
     expect(updateMock).not.toHaveBeenCalled();
   });
+
+  test("rejects a URL-only edit that breaks an already-proxied tab", async () => {
+    // Arrange
+    findByIdMock.mockResolvedValue({ ...sampleTab, useProxy: true });
+
+    // Act & Assert
+    await expect(service.update("example", { title: "X", url: "not a url" })).rejects.toThrow(
+      BadRequestError,
+    );
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  test("rejects a non-http URL when turning the proxy on", async () => {
+    // Arrange
+    findByIdMock.mockResolvedValue(sampleTab);
+
+    // Act & Assert
+    await expect(
+      service.update("example", {
+        title: "X",
+        url: "file:///etc/passwd",
+        useProxy: true,
+      }),
+    ).rejects.toThrow(BadRequestError);
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  test("leaves the URL unchecked for a tab that isn't proxied", async () => {
+    // Arrange
+    findByIdMock.mockResolvedValue(sampleTab);
+    updateMock.mockResolvedValue(sampleTab);
+
+    // Act & Assert
+    await expect(
+      service.update("example", { title: "X", url: "intranet-host/dash" }),
+    ).resolves.toBeDefined();
+  });
+});
+
+describe("create validation", () => {
+  test("rejects an invalid URL on a proxied tab", async () => {
+    // Arrange / Act & Assert
+    await expect(
+      service.create({
+        title: "X",
+        url: "http//missing-colon",
+        useProxy: true,
+      }),
+    ).rejects.toThrow(BadRequestError);
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  test("accepts a valid http(s) URL on a proxied tab", async () => {
+    // Arrange
+    createMock.mockResolvedValue({ ...sampleTab, useProxy: true });
+
+    // Act & Assert
+    await expect(
+      service.create({
+        title: "X",
+        url: "https://grafana.internal:3000/d/1",
+        useProxy: true,
+      }),
+    ).resolves.toBeDefined();
+  });
 });
 
 describe("delete", () => {

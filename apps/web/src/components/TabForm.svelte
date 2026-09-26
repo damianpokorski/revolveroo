@@ -9,8 +9,7 @@ interface Props {
 	tab?: TabData;
 	displays: DisplayData[];
 	windows: WindowData[];
-	proxyDomain: string | null;
-	proxyPort: number;
+	proxyEnabled: boolean;
 	onsave: (body: TabBody) => void;
 	oncancel: () => void;
 	ondelete?: () => void;
@@ -20,8 +19,7 @@ const {
 	tab,
 	displays,
 	windows,
-	proxyDomain,
-	proxyPort,
+	proxyEnabled,
 	onsave,
 	oncancel,
 	ondelete,
@@ -176,7 +174,7 @@ function handleSave() {
 		customDuration: customDurationEnabled ? customDuration : null,
 		displays: showsOnMode === "every" ? null : selectedDisplays,
 		windows: whenMode === "any" ? null : tabWindows,
-		useProxy: proxyDomain ? useProxy : false,
+		useProxy,
 	});
 }
 </script>
@@ -231,14 +229,14 @@ function handleSave() {
 			<input class="rv-range" data-testid="tab-custom-duration-range" type="range" bind:value={customDuration} min="1000" max="20000" step="500" />
 		</label>
 	{/if}
-	{#if proxyDomain}
+	{#if proxyEnabled}
 		<label class="inline-checkbox">
 			<input class="rv-checkbox" type="checkbox" data-testid="tab-use-proxy-toggle" bind:checked={useProxy} />
 			Route through proxy
 		</label>
 		{#if useProxy}
 			<p class="rv-mono proxy-hint" data-testid="tab-proxy-hint">
-				Served via http://{tab?.id ?? "…"}.{proxyDomain}:{proxyPort} — for services that refuse to be iframed directly
+				Served through a generated per-boot subdomain — for services that refuse to be iframed directly
 			</p>
 		{/if}
 	{/if}

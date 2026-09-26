@@ -42,8 +42,7 @@ let tabs = $state<TabData[]>([]);
 let displays = $state<DisplayData[]>([]);
 let windows = $state<WindowData[]>([]);
 let config = $state<ConfigData | null>(null);
-let proxyDomain = $state<string | null>(null);
-let proxyPort = $state(80);
+let proxyEnabled = $state(false);
 let loaded = $state(false);
 
 let addingTab = $state(false);
@@ -89,10 +88,7 @@ async function loadAll() {
 		config = configRes.data;
 		applyTheme(config.theme);
 	}
-	if (!healthRes.error) {
-		proxyDomain = healthRes.data.proxyDomain;
-		proxyPort = healthRes.data.proxyPort;
-	}
+	if (!healthRes.error) proxyEnabled = healthRes.data.proxyEnabled;
 	loaded = true;
 }
 
@@ -317,7 +313,7 @@ function scheduleConfigSave() {
 
 			{#if addingTab}
 				<div class="rv-card form-card">
-					<TabForm {displays} {windows} {proxyDomain} {proxyPort} onsave={saveTab} oncancel={cancelTab} />
+					<TabForm {displays} {windows} {proxyEnabled} onsave={saveTab} oncancel={cancelTab} />
 				</div>
 			{/if}
 
@@ -340,8 +336,7 @@ function scheduleConfigSave() {
 								{tab}
 								{displays}
 								{windows}
-								{proxyDomain}
-								{proxyPort}
+								{proxyEnabled}
 								onsave={saveTab}
 								oncancel={cancelTab}
 								ondelete={() => (deletingTabId = tab.id)}

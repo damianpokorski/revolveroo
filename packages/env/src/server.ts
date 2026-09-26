@@ -16,6 +16,11 @@ export const env = createEnv({
     PROXY_PORT: z.coerce.number().int().positive().default(80),
     // Caddy's admin API port — loopback-only, never published.
     CADDY_ADMIN_PORT: z.coerce.number().int().positive().default(2019),
+    // Comma-separated full origins (e.g. "http://revolveroo.media.server,http://192.168.1.20")
+    // that may frame proxied tabs — becomes the CSP frame-ancestors allowlist. Unset
+    // defaults to http://{PROXY_DOMAIN}[:*]. Kiosks that open Revolveroo under any
+    // other hostname/IP must be listed here or their proxied frames render blank.
+    PROXY_APP_ORIGINS: z.string().optional(),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

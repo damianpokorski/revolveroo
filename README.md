@@ -99,13 +99,28 @@ revolveroo.example.com {
 
 ## Embedding services that block iframing
 
-Some self-hosted dashboards send `X-Frame-Options`/CSP headers that refuse to be embedded in an iframe at all — the usual workaround is running a separate reverse proxy in front of that one app just to strip those headers. Revolveroo can do this itself instead, using the same Caddy instance that already fronts the app (see above): a per-tab toggle routes that tab's traffic through a `{tabId}.{PROXY_DOMAIN}` subdomain, which Caddy reverse-proxies to the tab's real URL while stripping `X-Frame-Options` and the CSP `frame-ancestors` directive. This is entirely **optional** — tabs default to loading their URL directly, exactly as before.
+Some self-hosted dashboards send `X-Frame-Options`/CSP headers that refuse to be embedded in an iframe at all — the usual workaround is running a separate reverse proxy in front of that one app just to strip those headers. Revolveroo can do this itself instead, using the same Caddy instance that already fronts the app (see above): a per-tab toggle routes that tab's traffic through its own generated subdomain of `PROXY_DOMAIN`, which Caddy reverse-proxies to the tab's real URL while replacing the framing restrictions (`X-Frame-Options` and the CSP `frame-ancestors` directive) with one that only lets Revolveroo frame it. This is entirely **optional** — tabs default to loading their URL directly, exactly as before.
 
 To enable it:
 
 1. Set the `PROXY_DOMAIN` environment variable on the container (e.g. `PROXY_DOMAIN=revolveroo.media.server`, matching whatever local naming convention your network already uses for `.media.server`/`.home.lan`-style hosts).
 2. Add a one-time wildcard DNS record on your own router/DNS server/hosts file: `*.revolveroo.media.server → <the container's address>`. Revolveroo doesn't manage this for you — it's plain LAN DNS, no different from pointing any other hostname at the container.
-3. In a tab's edit form, check **Route through proxy**. Nothing else to publish or configure — every proxied tab shares Revolveroo's one published port.
+3. If you open Revolveroo under a hostname or IP other than `PROXY_DOMAIN` itself (for example `http://192.168.1.20`), list every such origin in `PROXY_APP_ORIGINS`, comma-separated: `PROXY_APP_ORIGINS=http://revolveroo.media.server,http://192.168.1.20`. Only these origins may frame a proxied tab; anything else gets a blank frame. The server prints the effective list at startup.
+4. In a tab's edit form, check **Route through proxy**. Nothing else to publish or configure — every proxied tab shares Revolveroo's one published port.
+
+### How proxied tabs are protected
+
+Proxying puts an internal service behind a name your network can resolve, so it is locked down more than a plain iframe would be:
+
+- **Unguessable, per-boot subdomains.** A proxied tab is served from `{24 hex chars}.{PROXY_DOMAIN}`, not from a name derived from its title. The label is an HMAC of the tab id under a secret drawn fresh at every server start, so every restart re-rolls all of them. Kiosks pick up the new addresses on their own and swap the frames in the background (the old frame stays on screen until the new one has loaded). Every other name under the domain answers `404`.
+- **Only Revolveroo can frame it.** The upstream's own `X-Frame-Options` and `frame-ancestors` are removed and replaced with an allowlist of the origins above, so a malicious page can't clickjack a proxied service. The rest of the upstream's Content-Security-Policy is kept.
+- **Not directly browsable.** A page can't be opened by typing or pasting its address, or by following a link from another site: browser page loads must come from Revolveroo or from the proxied page itself (so links inside the frame still work). This is deliberately based on `Referer` rather than `Sec-Fetch-*`, because browsers don't send `Sec-Fetch-*` to plain-HTTP hostnames. Clients that send neither header (curl, very old browsers) are not affected, so treat this as a speed bump, not a lock.
+- **Leak-resistant.** `Referrer-Policy: same-origin` keeps the address from reaching third-party CDNs the proxied page loads from, and `Server`/`Via` are stripped.
+- **Only valid `http(s)` URLs.** The API rejects a proxied tab whose URL isn't a real `http`/`https` URL, and a bad hand-edit in the YAML file is skipped with a warning instead of breaking the proxy for every tab.
+
+**What this does not do.** The addresses are capability URLs, not credentials: Revolveroo's API has no login, so anyone who can reach it can still ask for the current addresses. The hardening defends against enumeration, cross-site framing and drive-by requests on a trusted network, not against a hostile peer who can call the API. Don't expose Revolveroo, or the proxy port, to networks you don't trust. Real protection there means putting authentication in front of the whole app.
+
+**Related API hardening.** In production the API no longer sends CORS headers at all (the web UI is served from the same origin), and state-changing requests (`POST`/`PUT`/`PATCH`/`DELETE`) that a browser reports as coming from another site or origin are refused with `403`. Scripts and `curl` send no `Origin` and are unaffected. If you put Revolveroo behind a front proxy that rewrites the `Host` header, have it send `X-Forwarded-Host` too. Not covered: DNS-rebinding attacks against the API.
 
 The bundled proxy is plain HTTP only (no TLS) — it's meant for LAN use, same as the rest of Revolveroo. If the app itself is served over HTTPS by an external front proxy, embedding a plain-HTTP proxied subdomain in that page will hit the browser's mixed-content block; in that setup, proxied tabs are best left off, or the external proxy extended to also terminate TLS for the wildcard subdomain.
 

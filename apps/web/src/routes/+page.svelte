@@ -1,5 +1,5 @@
 <script lang="ts">
-import { onDestroy, onMount } from "svelte";
+import { onDestroy, onMount, untrack } from "svelte";
 import {
 	createApi,
 	type DisplayData,
@@ -9,7 +9,7 @@ import {
 	type WindowData,
 } from "$lib/api";
 import Icon from "$lib/icons/Icon.svelte";
-import { iframeSrc } from "$lib/proxy";
+import { iframeSrc, NO_PROXY_FRAMES, type ProxyFrames } from "$lib/proxy";
 import { DEFAULT_TAB_TRANSITION, type TabTransition } from "$lib/tabTransition";
 import { applyTheme } from "$lib/theme";
 import { pushToast } from "$lib/toast.svelte";
@@ -34,8 +34,8 @@ let windowsById = $state(new Map<string, WindowData>());
 let displayId = $state<string | null>(null);
 let resolvedDisplay = $state<DisplayData | null>(null);
 let tabHealth = $state<TabHealthData>({});
-let proxyDomain = $state<string | null>(null);
-let proxyPort = $state(80);
+// Per-boot proxy subdomains handed out by the server (see /api/proxy/frames).
+let proxyFrames = $state<ProxyFrames>(NO_PROXY_FRAMES);
 
 // --- Config ---
 let playbackInterval = $state(5000);
@@ -51,12 +51,14 @@ async function refreshData() {
 		windowsResult,
 		displaysResult,
 		healthResult,
+		framesResult,
 	] = await Promise.all([
 		api.api.tabs.get(),
 		api.api.config.get(),
 		api.api.windows.get(),
 		api.api.displays.get(),
 		api.api.tabs.health.get(),
+		api.api.proxy.frames.get(),
 	]);
 
 	if (tabsResult.error) {
@@ -73,6 +75,11 @@ async function refreshData() {
 	resolvedDisplay = resolveDisplay(displays, window.location);
 	displayId = resolvedDisplay?.id ?? null;
 	tabHealth = healthResult.error ? {} : healthResult.data;
+	// Set before `tabs` so a proxied tab never renders without its frame URL.
+	// On a failed fetch keep the last known frames rather than dropping them.
+	if (!framesResult.error) proxyFrames = framesResult.data;
+	// Every resync gives a preload that failed last time another chance.
+	failedSrc = {};
 
 	allTabsCount = tabsResult.data.length;
 	const now = new Date();
@@ -90,16 +97,6 @@ async function refreshData() {
 	}
 }
 onMount(refreshData);
-
-// Deployment-level and static for the server's lifetime — fetched once,
-// separately from the polled/SSE-refreshed data above.
-onMount(async () => {
-	const healthResult = await api.api.health.get();
-	if (!healthResult.error) {
-		proxyDomain = healthResult.data.proxyDomain;
-		proxyPort = healthResult.data.proxyPort;
-	}
-});
 
 // Fallback poll: the SSE "change" listener below only re-fetches when data
 // actually changes, so an idle-but-healthy server would never refresh
@@ -119,8 +116,13 @@ onDestroy(() => clearInterval(pollTimer));
 onMount(() => {
 	const source = new EventSource(`${resolveServerUrl()}/api/events`);
 	source.addEventListener("open", () => {
+		const recovered = sseDisconnectedAt !== null;
 		sseConnected = true;
 		sseDisconnectedAt = null;
+		// A reconnect after an outage may mean the server restarted, which
+		// re-rolls every proxied tab's subdomain — resync so the frames swap
+		// onto the new URLs (nothing else refetches on a bare reconnect).
+		if (recovered) void refreshData();
 	});
 	source.addEventListener("error", () => {
 		sseConnected = false;
@@ -306,11 +308,119 @@ const QUESTION_MARK_ICON = "";
 // --- Frame paint tracking (per tab, spec section 9) ---
 let frameStateByTab = $state<Record<string, "ok" | "error" | "timeout">>({});
 
-function trackFrame(node: HTMLIFrameElement, tabId: string) {
+// A tab normally owns one "live" iframe. When the URL it should show changes (a
+// proxied tab's per-boot subdomain after a server restart, or an edited URL) the
+// new one loads hidden as "pending" and is only swapped in once it has loaded, so
+// the screen never goes blank. The frame it replaces lingers briefly underneath as
+// "retiring" so the swap can't flash.
+type FrameRole = "live" | "pending" | "retiring";
+interface FrameSlot {
+	src: string;
+	role: FrameRole;
+	swappedIn: boolean;
+}
+const SWAP_RETIRE_MS = 700;
+let frameSlots = $state<Record<string, FrameSlot[]>>({});
+// A pending preload that errored or timed out for this src; cleared on every resync.
+let failedSrc = $state<Record<string, string>>({});
+const retireTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+$effect(() => {
+	// Reconcile what each tab should show with what is mounted. Only these reads
+	// are tracked; the slot bookkeeping below is untracked so writing `frameSlots`
+	// can't retrigger this effect.
+	const wanted = tabs.map(
+		(tab) => [tab.id, iframeSrc(tab, proxyFrames)] as const,
+	);
+	const failed = failedSrc;
+	untrack(() => {
+		const next: Record<string, FrameSlot[]> = {};
+		let changed = false;
+		for (const [id, src] of wanted) {
+			const slots = frameSlots[id] ?? [];
+			if (src === null) {
+				// No valid URL yet (e.g. proxy frames not fetched) — keep whatever is up.
+				if (slots.length > 0) next[id] = slots;
+				continue;
+			}
+			const live = slots.find((s) => s.role === "live");
+			if (!live) {
+				next[id] = [{ src, role: "live", swappedIn: false }];
+				changed = true;
+				continue;
+			}
+			const withoutPending = slots.filter((s) => s.role !== "pending");
+			if (live.src === src) {
+				next[id] = withoutPending;
+				if (withoutPending.length !== slots.length) changed = true;
+				continue;
+			}
+			if (
+				slots.some((s) => s.role === "pending" && s.src === src) ||
+				failed[id] === src
+			) {
+				next[id] = slots;
+				continue;
+			}
+			next[id] = [
+				...withoutPending.filter((s) => s.src !== src),
+				{ src, role: "pending", swappedIn: false },
+			];
+			changed = true;
+		}
+		if (Object.keys(next).length !== Object.keys(frameSlots).length)
+			changed = true;
+		if (changed) frameSlots = next;
+	});
+});
+
+function promoteFrame(tabId: string, src: string) {
+	const slots = frameSlots[tabId] ?? [];
+	if (!slots.some((s) => s.role === "pending" && s.src === src)) return;
+	const retiring = slots
+		.filter((s) => s.role === "live")
+		.map((s) => ({ ...s, role: "retiring" as const }));
+	frameSlots[tabId] = [...retiring, { src, role: "live", swappedIn: true }];
+	frameStateByTab[tabId] = "ok";
+	clearTimeout(retireTimers.get(tabId));
+	retireTimers.set(
+		tabId,
+		setTimeout(() => {
+			retireTimers.delete(tabId);
+			if (!(tabId in frameSlots)) return;
+			frameSlots[tabId] = frameSlots[tabId]
+				.filter((s) => s.role !== "retiring")
+				.map((s) => ({ ...s, swappedIn: false }));
+		}, SWAP_RETIRE_MS),
+	);
+	if (tabs[activeTabIndex]?.id === tabId) sendHeartbeat();
+}
+
+function failPending(tabId: string, src: string) {
+	failedSrc[tabId] = src;
+	frameSlots[tabId] = (frameSlots[tabId] ?? []).filter(
+		(s) => !(s.role === "pending" && s.src === src),
+	);
+}
+
+onDestroy(() => {
+	for (const timer of retireTimers.values()) clearTimeout(timer);
+});
+
+function trackFrame(
+	node: HTMLIFrameElement,
+	{ tabId, src }: { tabId: string; src: string },
+) {
 	let settled = false;
+	// A preloading frame must never touch its tab's health state: the tab is still
+	// showing (and being judged by) its live frame.
+	const isPending = () =>
+		frameSlots[tabId]?.some((s) => s.src === src && s.role === "pending") ??
+		false;
 	const timeout = setTimeout(() => {
 		if (settled) return;
 		settled = true;
+		if (isPending()) return failPending(tabId, src);
 		frameStateByTab[tabId] = "timeout";
 		if (tabs[activeTabIndex]?.id === tabId) sendHeartbeat();
 	}, PAINT_TIMEOUT_MS);
@@ -318,6 +428,7 @@ function trackFrame(node: HTMLIFrameElement, tabId: string) {
 		if (settled) return;
 		settled = true;
 		clearTimeout(timeout);
+		if (isPending()) return promoteFrame(tabId, src);
 		frameStateByTab[tabId] = "ok";
 		if (tabs[activeTabIndex]?.id === tabId) sendHeartbeat();
 	};
@@ -325,6 +436,7 @@ function trackFrame(node: HTMLIFrameElement, tabId: string) {
 		if (settled) return;
 		settled = true;
 		clearTimeout(timeout);
+		if (isPending()) return failPending(tabId, src);
 		frameStateByTab[tabId] = "error";
 		if (tabs[activeTabIndex]?.id === tabId) sendHeartbeat();
 	};
@@ -464,16 +576,22 @@ const BANNER_COPY: Record<string, string> = {
 		<!-- Iframes: all rendered, inactive ones pushed behind -->
 		{#each tabs as tab, i (tab.id)}
 			{#key reloadNonce[tab.id] ?? 0}
-				<iframe
-					title={tab.title}
-					src={iframeSrc(tab, proxyDomain, proxyPort)}
-					class="frame"
-					class:active={i === activeTabIndex}
-					class:leaving={i === previousTabIndex}
-					data-testid="kiosk-iframe"
-					data-tab-id={tab.id}
-					use:trackFrame={tab.id}
-				></iframe>
+				{#each frameSlots[tab.id] ?? [] as slot (slot.src)}
+					<iframe
+						title={tab.title}
+						src={slot.src}
+						class="frame"
+						class:active={slot.role === "live" && i === activeTabIndex}
+						class:leaving={slot.role === "live" && i === previousTabIndex}
+						class:preloading={slot.role === "pending"}
+						class:retiring={slot.role === "retiring" && i === activeTabIndex}
+						class:swapped-in={slot.swappedIn}
+						data-testid="kiosk-iframe"
+						data-tab-id={tab.id}
+						data-frame-role={slot.role}
+						use:trackFrame={{ tabId: tab.id, src: slot.src }}
+					></iframe>
+				{/each}
 			{/key}
 		{/each}
 
@@ -682,6 +800,25 @@ const BANNER_COPY: Record<string, string> = {
 	[data-transition="slide"] .frame.leaving {
 		transform: translateX(-100%);
 		opacity: 1;
+	}
+
+	/* Background swap (see frameSlots): the incoming frame preloads out of sight;
+	   the outgoing one stays put underneath until the new one has appeared. */
+	.frame.preloading {
+		z-index: -600;
+	}
+	.frame.retiring {
+		z-index: 0;
+		opacity: 1;
+		pointer-events: none;
+		transform: translateX(0);
+	}
+	[data-transition="slide"] .frame.retiring {
+		transform: translateX(0);
+	}
+	/* No fade/slide for a swap — it isn't a tab change, just new content. */
+	.frame.swapped-in {
+		transition: none !important;
 	}
 
 	@media (prefers-reduced-motion: reduce) {

@@ -38,3 +38,7 @@ export type OverviewData = NonNullable<
 export type HealthData = NonNullable<
   Awaited<ReturnType<ApiClient["api"]["health"]["get"]>>["data"]
 >;
+
+export type ProxyFramesData = NonNullable<
+  Awaited<ReturnType<ApiClient["api"]["proxy"]["frames"]["get"]>>["data"]
+>;

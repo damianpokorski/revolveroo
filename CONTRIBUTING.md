@@ -73,7 +73,7 @@ revolver/
 
 Playwright specs live in `apps/web/e2e/`, covering the flows that would be costly to break silently: tab CRUD, conditions, kiosk autoplay rotation, and playback controls.
 
-**Additional prerequisite: a local `caddy` (v2.x) binary on `PATH`.** The e2e server process spawns Caddy for its optional per-tab reverse-proxy feature — always, not just for `proxy.spec.ts` (see `apps/web/playwright.config.ts`'s `PROXY_DOMAIN`/`PROXY_PORT` env). Everyday `bun run dev` does **not** need this — Caddy is only ever spawned in dev/e2e when `PROXY_DOMAIN` is set.
+**Additional prerequisite: a local `caddy` (v2.x) binary on `PATH`.** The e2e server process spawns Caddy for its optional per-tab reverse-proxy feature — always, not just for `proxy.spec.ts` (see `apps/web/playwright.config.ts`'s `PROXY_DOMAIN`/`PROXY_PORT`/`PROXY_APP_ORIGINS` env). Everyday `bun run dev` does **not** need this — Caddy is only ever spawned in dev/e2e when `PROXY_DOMAIN` is set.
 
 ```bash
 # One-time: download the Chromium browser

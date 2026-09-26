@@ -42,6 +42,9 @@ export default defineConfig({
         // in CI. A non-privileged port, since CI runners aren't root.
         PROXY_DOMAIN: "localtest.me",
         PROXY_PORT: "8080",
+        // Only the kiosk (web dev server) may frame proxied tabs; proxy.spec.ts
+        // proves a page on any other origin (the fixture server) is refused.
+        PROXY_APP_ORIGINS: "http://localhost:5173",
       },
       stdout: "pipe",
       stderr: "pipe",
