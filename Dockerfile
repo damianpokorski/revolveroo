@@ -9,6 +9,7 @@ COPY apps/web/package.json     apps/web/
 COPY apps/server/package.json  apps/server/
 COPY packages/env/package.json packages/env/
 COPY packages/config/package.json packages/config/
+COPY apps/docs/package.json    apps/docs/
 RUN bun install --frozen-lockfile --production
 
 # ── builder: full install + build ─────────────────────────────────────────────

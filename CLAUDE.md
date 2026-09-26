@@ -13,6 +13,7 @@ Bun workspaces monorepo: a SvelteKit static SPA (`apps/web`) talks to a Bun-nati
 ## Codebase conventions
 
 **Backend layering (`apps/server`)** — strict Controller → Service → Repository per feature (see `controllers/tabs.ts`, `services/TabsService.ts`, `db/TimeRangesRepository.ts` as the reference implementation):
+
 - **Controller**: an Elysia sub-app scoped to a route prefix. Defines TypeBox (`t.Object`) request/response schemas, registers named response models via `.model()` so they can be referenced by string (`response: { 200: "Tab", 404: "NotFoundError" }`). Handlers stay thin — just delegate to a service method. Service + repository are instantiated manually at module scope (`new TabsService(new TabsRepository())`) — there's no DI container, keep it that way.
 - **Service**: business logic lives here. Existence checks before update/delete (throwing `NotFoundError`), defaulting, and API-shape transforms. No direct store access. **Exception**: ID generation is a Repository concern here, not a Service one — `TabsRepository`/`TimeRangesRepository` derive a human-readable slug from the title/name (via `store/slug.ts`) and check it for collisions against the store's current keys, which naturally lives alongside the store's own key bookkeeping. This parallels the pre-YAML `TabsRepository.create`, which likewise computed a derived value (`position`, via `SELECT max`) internally rather than in the service.
 - **Repository**: thin wrappers over `store/YamlStore.ts` only (`findAll`/`findById`/`create`/`update`/`delete`, plus feature-specific methods like `reorder`). No business logic.
@@ -23,6 +24,7 @@ Bun workspaces monorepo: a SvelteKit static SPA (`apps/web`) talks to a Bun-nati
 **Validation** — Elysia's built-in TypeBox (`t` from `"elysia"`) for all request/response schemas, not zod. Zod is reserved for OpenAPI JSON-schema generation glue (`router.ts`) and env-var validation (`packages/env`) — don't introduce zod for route validation.
 
 **Web separation of concerns (`apps/web`)**:
+
 - Form components (`TabForm`, `TimeRangeForm`, `ConditionsEditor`) are pure/controlled: props in, callback props out (`onsave`/`oncancel`), no internal fetch calls. The parent route page owns all state and API orchestration.
 - Domain logic lives in `src/lib/` (e.g. `tabs.ts`'s `TabCondition` classes and `evaluator()` methods), not inside components.
 - Wire types (`src/lib/api.ts`, derived from the Eden Treaty client via `Awaited<ReturnType<...>>`) are kept separate from edit-model types (`src/lib/types.ts`); forms bind to edit models, save handlers convert between the two.
@@ -34,6 +36,19 @@ Bun workspaces monorepo: a SvelteKit static SPA (`apps/web`) talks to a Bun-nati
 
 **General conventions** — tabs for indentation, double quotes, `workspace:*` for internal package deps, `catalog:` in root `package.json` for deps shared across 2+ workspaces (currently `dotenv`, `zod`, `typescript`, `@types/bun`).
 
+## Docs site
+
+User-facing docs are an Astro + Starlight site in `apps/docs`, deployed to GitHub Pages by `.github/workflows/docs.yml` (Pages Actions deploy — nothing is pushed to `main`). See `CONTRIBUTING.md` for the scripts and `.articles/README.md` for writing conventions; only the non-obvious rules are here:
+
+- **Content lives in the root `.articles/`** (plain `.md`, no MDX), symlinked into `apps/docs/src/content/docs`. Numbered folders (`01-getting-started`, ...) sort sections on disk; numeric prefixes are stripped from URLs.
+- **Scripts are named `docs:*`, not `dev`/`build`**, so `vp run -r dev|build` and the Dockerfile's `bun run build` skip the site. Don't rename them. The Dockerfile's `deps` stage still `COPY`s `apps/docs/package.json` (frozen-lockfile installs need every workspace manifest) but the docs site never ships in the image.
+- **Base path**: the site is served at `/revolveroo-draft`, and Markdown links are not auto-prefixed — internal links are written with the base (`/revolveroo-draft/guides/tabs/`). If the base changes, update `astro.config.mjs` and find-and-replace it in `.articles/`.
+- **Screenshots are generated, not hand-taken**: `bun run docs:screenshots` runs `apps/web/e2e/showcase/screenshots.spec.ts` via its own config; the main config's `testIgnore` keeps it out of `test:e2e`. Regenerate and review the PNGs when a documented screen changes.
+- **Keep docs in sync with behavior**: when a change alters a documented setting, env var, or data-file field, update the matching page in `.articles/04-reference/` (env vars, data file schema, security) in the same change.
+- **Theme values are copied** from `apps/web/src/app.css` into `apps/docs/src/styles/revolveroo.css`, not imported — sync by hand if the palette changes.
+- **Commit type**: docs-only changes should use `docs(...)`. A `feat(docs)` commit still triggers a release; that's tolerated here (ship fast), but it isn't necessary.
+- CI builds the site on every PR (`bun run docs:build` in `ci.yml`), so broken frontmatter fails before merge.
+
 ## Linting & formatting
 
 Biome is the only linter/formatter (`biome.json`) — no ESLint, no Prettier. Don't add them. Use `bun run check` (biome check --write), `bun run lint` (`vp lint`), `bun run format` (`vp fmt`), `bun run staged` (`biome check --write --staged`, Biome's native staged-file flag). A pre-commit hook already runs `bun run staged` over staged files (wired via `bun run hooks:setup`, which points `core.hooksPath` at the committed `.vite-hooks/` scripts); run that once after cloning if hooks aren't active. Svelte/Vue files intentionally disable a few rules (`useConst`, `useImportType`, unused-vars) since the Svelte compiler handles them differently — don't "fix" this by re-enabling them.
@@ -44,7 +59,7 @@ Biome is the only linter/formatter (`biome.json`) — no ESLint, no Prettier. Do
 
 - **Location**: colocate tests next to source as `<file>.ts` → `<file>.test.ts`.
 - **AAA convention**: every test body has explicit `// Arrange` / `// Act` / `// Assert` comment sections, even when a section is trivial. This is a repo rule, not a suggestion.
-- **Controller tests** (implemented — see `src/controllers/tabs.test.ts` as the reference): controllers instantiate their service/repository at module scope with real dependencies (`const service = new TabsService(new TabsRepository())`), and the repository ultimately touches the real `YamlStore` singleton as an import-time side effect (`store/YamlStore.ts`). To test a controller in isolation, use `mock.module("../services/XService", () => ({...}))` and `mock.module("../db/XRepository", () => ({...}))` to replace both with test doubles, then bring in the controller via a **dynamic `await import("./x")`** placed *after* those `mock.module()` calls (static imports are hoisted above `mock.module`, so they won't pick up the fakes). Drive requests via the exported Elysia instance's `.handle(new Request(...))` — this exercises real routing, TypeBox validation, and `errorPlugin`'s error-to-JSON mapping without a real HTTP server or data file. Reset mocks in `beforeEach`.
+- **Controller tests** (implemented — see `src/controllers/tabs.test.ts` as the reference): controllers instantiate their service/repository at module scope with real dependencies (`const service = new TabsService(new TabsRepository())`), and the repository ultimately touches the real `YamlStore` singleton as an import-time side effect (`store/YamlStore.ts`). To test a controller in isolation, use `mock.module("../services/XService", () => ({...}))` and `mock.module("../db/XRepository", () => ({...}))` to replace both with test doubles, then bring in the controller via a **dynamic `await import("./x")`** placed _after_ those `mock.module()` calls (static imports are hoisted above `mock.module`, so they won't pick up the fakes). Drive requests via the exported Elysia instance's `.handle(new Request(...))` — this exercises real routing, TypeBox validation, and `errorPlugin`'s error-to-JSON mapping without a real HTTP server or data file. Reset mocks in `beforeEach`.
 - **Service tests** (implemented — see `src/services/TabsService.test.ts`, `TimeRangesService.test.ts`, `ConfigService.test.ts`): construct the service directly with a hand-written fake repository (`{ findAll: mock(), findById: mock(), ... } as unknown as XRepository`) — no `mock.module` needed here, since the service only ever imports its repository as a TypeScript type (`import type`), which is erased at runtime and never touches the real store-backed class. Cover existence checks (`NotFoundError`/`BadRequestError` guards) and defaulting — happy-path plus the guard clauses, not exhaustive.
 - **Store tests** (implemented — see `src/store/YamlStore.test.ts`, `slug.test.ts`): `YamlStore` is constructed directly against a temp file (`mkdtempSync` under the OS temp dir, cleaned up in `afterEach`) rather than mocked — it's cheap enough to exercise for real, and the behavior worth covering (atomic writes, mutex-serialized concurrent mutations, the file watcher's self-write vs. external-edit disambiguation, per-entity partial-apply validation) only shows up end-to-end. `notifyDataChanged` is faked via `mock.module("../events", ...)` before a dynamic `await import("./YamlStore")`, same hoisting reason as controller tests above.
 - **`mock.module` is process-global and irreversible, not file-scoped**: once a controller test calls `mock.module("../services/XService", () => ({...}))`, that fake permanently replaces the module for every other test file in the same `bun test` process — including files that import the real class directly (like the service tests above) — and calling `mock.module` again with the original export does **not** undo it (verified empirically; Bun does not restore the original module record). Bun test files also don't get separate module registries by default. The fix is the `--isolate` flag (`bun test ./src --isolate`, already wired into both `"test"` and `"test:coverage"` in `apps/server/package.json`), which runs each test file with a fresh global object so `mock.module` in one file can't leak into another. **Always keep `--isolate` on both scripts** — removing it will silently reintroduce cross-file contamination between controller tests and any test file that imports the real service/repository classes.
@@ -56,6 +71,7 @@ Biome is the only linter/formatter (`biome.json`) — no ESLint, no Prettier. Do
 ## End-to-end testing
 
 **Playwright** (`@playwright/test`) in `apps/web/e2e/`, implemented as a small, deliberately scoped set of critical-path specs rather than exhaustive UI coverage:
+
 - `settings-tabs.spec.ts` — Settings CRUD: create/edit/reorder/delete a tab.
 - `conditions.spec.ts` — Time-range and query-param conditions: create one, verify it persists and evaluates correctly.
 - `kiosk-rotation.spec.ts` — Kiosk root view: tabs rotate on the configured interval, hidden tabs are excluded from autoplay but reachable manually.
@@ -76,6 +92,7 @@ Playwright's built-in `toHaveScreenshot()` rather than a separate service (Chrom
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on push to `main` and on pull requests, as a single sequential job (deliberately not split into a matrix or multiple parallel jobs for a project this size):
+
 1. Checkout, read the Bun version out of `mise.toml` via `scripts/mise-tool-version.sh` (the single source of truth), set up that Bun version, then run `bun run check-versions` (`scripts/check-tool-versions.sh`) to fail fast if `package.json`'s `packageManager` or the Dockerfile's `oven/bun:` pin have drifted from `mise.toml`.
 2. Cache the Bun install cache and Playwright browser binaries (keyed on `bun.lock` / `apps/web/package.json`).
 3. `bun install --frozen-lockfile`, then `bun run fonts:setup` (self-hosted Nerd Font needed before both build and e2e).
@@ -94,6 +111,7 @@ The existing multi-stage `Dockerfile` (base → deps → builder → runtime) is
 The Dockerfile has a `HEALTHCHECK` instruction that polls the server's `/api/health` route (`router.ts`), which also backs the CI smoke test above — keep both pointed at the same endpoint if either changes.
 
 A couple of notes:
+
 - When adding a new workspace or a `packages/*` with runtime deps, remember to add corresponding `COPY` lines for its `package.json` (deps stage) and its `node_modules`/source (runtime stage) — the Dockerfile doesn't auto-discover workspaces.
 - Don't add docker-compose. Local dev already has a lower-friction path via `bun run dev` (the data file needs no separate service to start), and the existing `docker`/`docker:stop` scripts already cover testing the production image locally. Revisit only if a second dependent service is introduced.
 
@@ -113,6 +131,7 @@ Commits must follow [Conventional Commits](https://www.conventionalcommits.org/)
 ## New feature checklist
 
 When adding a new API-backed resource (modeled on how `tabs`/`time-ranges` were built):
+
 1. Add the type to `apps/server/src/store/types.ts` and its zod schema (with `.default(...)` per field) to `apps/server/src/store/schema.ts`. Add default seed data to `apps/server/src/store/defaultData.ts` if the resource should ship with example entries. Wire a new top-level YAML section into `YamlStore` (getters, mutation methods) following the `tabs`/`timeRanges` pattern — no migration step needed, new fields just pick up their zod default on next boot.
 2. Add a repository (`apps/server/src/db/<Feature>Repository.ts`) — thin wrappers over the store only.
 3. Add a service (`apps/server/src/services/<Feature>Service.ts`) — business logic, `HttpError` subclasses as needed, transforms.

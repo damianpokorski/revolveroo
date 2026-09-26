@@ -1,0 +1,32 @@
+---
+title: Revolveroo
+description: A self-hosted kiosk that rotates through your dashboards on tablets, TVs and wall monitors.
+template: splash
+hero:
+  tagline: Point it at Grafana, Home Assistant, Netdata or Uptime Kuma and let it rotate through them full-screen, on every screen in the house.
+  image:
+    file: ../../assets/screenshots/kiosk.png
+    alt: The Revolveroo kiosk showing a dashboard with the tab HUD in the bottom-right corner.
+  actions:
+    - text: Get started
+      link: /revolveroo-draft/getting-started/install/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/damianpokorski/revolveroo-draft
+      variant: minimal
+---
+
+## What it does
+
+Revolveroo is built for a house full of screens, not just one. A single ordered list of tabs drives every physical **Display**, and each tab declares which displays it plays on and in which time windows.
+
+- **Rotate.** Dashboards cycle on a configurable interval, with a progress hairline along the bottom of the screen.
+- **Target.** Name each screen, then choose which tabs show on which display and at what time of day.
+- **Embed anything.** An optional bundled proxy strips the headers that stop stubborn services from loading in an iframe.
+- **One file.** All state lives in one YAML file you can edit by hand while the app runs.
+
+## Where to go next
+
+- New here? Follow [Install with Docker](/revolveroo-draft/getting-started/install/), then [Set up your first kiosk](/revolveroo-draft/getting-started/first-kiosk/).
+- Looking for something specific? The [guides](/revolveroo-draft/guides/displays/) cover each feature, and the [reference](/revolveroo-draft/reference/environment-variables/) lists every setting.
+- Running from source or contributing? See [CONTRIBUTING.md](https://github.com/damianpokorski/revolveroo-draft/blob/main/CONTRIBUTING.md).

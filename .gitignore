@@ -11,6 +11,9 @@ build
 # Generated files
 apps/web/src/routeTree.gen.ts
 
+# Astro docs site (apps/docs) — generated types/cache
+.astro
+
 # Fetched via `bun run fonts:setup` (binary release asset, not committed)
 apps/web/static/fonts/
 

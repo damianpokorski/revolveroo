@@ -70,6 +70,11 @@ jobs:
       - name: Build
         run: bun run build
 
+      # Separate from `build` on purpose (docs scripts are named docs:* so `vp run -r build`
+      # and the Dockerfile skip them). Catches broken frontmatter/links before the Pages deploy.
+      - name: Build docs site
+        run: bun run docs:build
+
       # --with-deps installs the Ubuntu system libraries Chromium needs. The repo's own
       # `test:e2e:install` script deliberately skips --with-deps (it also has to work in
       # sandboxes without passwordless sudo); GitHub-hosted runners have full sudo, and a

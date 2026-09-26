@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <title>Revolveroo</title>
+  <style>
+    .ring{stroke:#8839EF} .hot{fill:#8839EF} .cold{fill:#9CA0B0}
+    @media (prefers-color-scheme: dark) {
+      .ring{stroke:#CBA6F7} .hot{fill:#CBA6F7} .cold{fill:#6C7086}
+    }
+  </style>
+  <circle cx="12" cy="12" r="9.2" fill="none" class="ring" stroke-width="2"/>
+  <circle cx="16.5" cy="9.4" r="1.75" class="cold"/>
+  <circle cx="16.5" cy="14.6" r="1.75" class="cold"/>
+  <circle cx="12" cy="17.2" r="1.75" class="cold"/>
+  <circle cx="7.5" cy="14.6" r="1.75" class="cold"/>
+  <circle cx="7.5" cy="9.4" r="1.75" class="cold"/>
+  <circle cx="12" cy="6.8" r="2.5" class="hot"/>
+</svg>

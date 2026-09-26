@@ -1,0 +1,41 @@
+/* Maps Starlight's colour variables onto Revolveroo's own theme tokens.
+   Values are copied from apps/web/src/app.css (Catppuccin Mocha for dark, Latte for light),
+   not imported, so keep them in sync by hand if the app's palette changes. */
+:root {
+  --sl-color-black: #1e1e2e;
+  --sl-color-gray-6: #181825;
+  --sl-color-gray-5: #313244;
+  --sl-color-gray-4: #45475a;
+  --sl-color-gray-3: #9399b2;
+  --sl-color-gray-2: #bac2de;
+  --sl-color-gray-1: #cdd6f4;
+  --sl-color-white: #cdd6f4;
+  --sl-color-accent-low: #332e46;
+  --sl-color-accent: #cba6f7;
+  --sl-color-accent-high: #e0cdfb;
+  --sl-color-bg-nav: #181825;
+  --sl-color-bg-sidebar: #181825;
+}
+
+:root[data-theme="light"] {
+  --sl-color-white: #4c4f69;
+  --sl-color-gray-1: #4c4f69;
+  --sl-color-gray-2: #5c5f77;
+  --sl-color-gray-3: #63667e;
+  --sl-color-gray-4: #7c7f93;
+  --sl-color-gray-5: #ccd0da;
+  --sl-color-gray-6: #e6e9ef;
+  --sl-color-gray-7: #dce0e8;
+  --sl-color-black: #eff1f5;
+  --sl-color-accent-low: #e3dbf4;
+  --sl-color-accent: #8839ef;
+  --sl-color-accent-high: #6a24c4;
+  --sl-color-bg-nav: #e6e9ef;
+  --sl-color-bg-sidebar: #e6e9ef;
+}
+
+/* Screenshots are captured on the dark theme; keep them from glaring on the light one. */
+.sl-markdown-content img {
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.5rem;
+}

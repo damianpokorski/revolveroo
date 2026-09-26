@@ -14,6 +14,8 @@ const serverCommand = [`rm -f ${E2E_DATA_FILE_PATH}`, "bun run --hot src/index.t
 
 export default defineConfig({
   testDir: "./e2e",
+  // Docs screenshot generator — run via `bun run docs:screenshots`, not part of the e2e suite.
+  testIgnore: "**/showcase/**",
   // The disposable data file is shared for the whole run — keep specs serial so they
   // can't race each other on the singleton config section.
   workers: 1,

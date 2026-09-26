@@ -12,6 +12,8 @@ export default defineConfig({
       "apps/web/build/**",
       "apps/web/.output/**",
       "apps/server/dist/**",
+      "apps/docs/dist/**",
+      "apps/docs/.astro/**",
       "local.yaml",
     ],
     options: {
@@ -27,6 +29,8 @@ export default defineConfig({
       "apps/web/build/**",
       "apps/web/.output/**",
       "apps/server/dist/**",
+      "apps/docs/dist/**",
+      "apps/docs/.astro/**",
       "local.yaml",
     ],
     singleQuote: false,
