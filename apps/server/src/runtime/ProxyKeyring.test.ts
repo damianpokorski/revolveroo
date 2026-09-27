@@ -1,10 +1,23 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { ProxyKeyring } from "./ProxyKeyring";
+
+let dir: string;
+
+beforeEach(() => {
+  dir = mkdtempSync(join(tmpdir(), "proxy-keyring-test-"));
+});
+
+afterEach(() => {
+  rmSync(dir, { recursive: true, force: true });
+});
 
 describe("ProxyKeyring", () => {
   test("returns a stable label for the same tab within one instance", () => {
     // Arrange
-    const keyring = new ProxyKeyring();
+    const keyring = new ProxyKeyring(join(dir, ".proxy-secret"));
 
     // Act
     const first = keyring.labelFor("grafana");
@@ -16,7 +29,7 @@ describe("ProxyKeyring", () => {
 
   test("returns different labels for different tabs", () => {
     // Arrange
-    const keyring = new ProxyKeyring();
+    const keyring = new ProxyKeyring(join(dir, ".proxy-secret"));
 
     // Act
     const a = keyring.labelFor("grafana");
@@ -26,10 +39,10 @@ describe("ProxyKeyring", () => {
     expect(a).not.toBe(b);
   });
 
-  test("returns different labels for the same tab across instances (i.e. across boots)", () => {
+  test("returns different labels for the same tab across different secret files", () => {
     // Arrange
-    const bootOne = new ProxyKeyring();
-    const bootTwo = new ProxyKeyring();
+    const bootOne = new ProxyKeyring(join(dir, "one", ".proxy-secret"));
+    const bootTwo = new ProxyKeyring(join(dir, "two", ".proxy-secret"));
 
     // Act
     const before = bootOne.labelFor("grafana");
@@ -39,9 +52,23 @@ describe("ProxyKeyring", () => {
     expect(before).not.toBe(after);
   });
 
+  test("returns the same label for the same tab across instances sharing a secret file (i.e. across restarts)", () => {
+    // Arrange
+    const secretPath = join(dir, ".proxy-secret");
+    const bootOne = new ProxyKeyring(secretPath);
+    const before = bootOne.labelFor("grafana");
+
+    // Act
+    const bootTwo = new ProxyKeyring(secretPath);
+    const after = bootTwo.labelFor("grafana");
+
+    // Assert
+    expect(after).toBe(before);
+  });
+
   test("returns a 24-char lowercase hex label that is a valid DNS label and hides the tab id", () => {
     // Arrange
-    const keyring = new ProxyKeyring();
+    const keyring = new ProxyKeyring(join(dir, ".proxy-secret"));
 
     // Act
     const label = keyring.labelFor("front-door-camera");

@@ -69,3 +69,7 @@ temp
 
 local.yaml
 local.db
+
+# Persisted proxy subdomain label secret (apps/server/src/runtime/ProxyKeyring.ts) —
+# lives next to whichever data file is in play (local.yaml, apps/web/e2e/.e2e.yaml, ...).
+.proxy-secret

@@ -46,4 +46,4 @@ The proxy is designed for a trusted network. Read the [security model](/revolver
 
 ## What you get in return
 
-Proxied tabs are locked down more than a plain iframe: unguessable per-boot subdomains, a framing allowlist, no direct browsing, and leak-resistant headers. The details are in the [security model](/revolveroo-draft/reference/security/).
+Proxied tabs are locked down more than a plain iframe: unguessable, persisted subdomains, a framing allowlist, no direct browsing, and leak-resistant headers. The details are in the [security model](/revolveroo-draft/reference/security/).
