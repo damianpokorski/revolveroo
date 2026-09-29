@@ -38,6 +38,7 @@ export const DEFAULT_TABS: Tab[] = [
     windows: null,
     customDuration: null,
     useProxy: false,
+    inject: [],
     icon: "󰖕",
   },
   {
@@ -49,6 +50,7 @@ export const DEFAULT_TABS: Tab[] = [
     windows: null,
     customDuration: null,
     useProxy: false,
+    inject: [],
     icon: "󰎓",
   },
   {
@@ -60,6 +62,7 @@ export const DEFAULT_TABS: Tab[] = [
     windows: null,
     customDuration: null,
     useProxy: false,
+    inject: [],
     icon: "󰞮",
   },
   {
@@ -71,6 +74,7 @@ export const DEFAULT_TABS: Tab[] = [
     windows: null,
     customDuration: null,
     useProxy: false,
+    inject: [],
     icon: "󰟴",
   },
   {
@@ -82,6 +86,7 @@ export const DEFAULT_TABS: Tab[] = [
     windows: null,
     customDuration: null,
     useProxy: false,
+    inject: [],
     icon: "󰛨",
   },
   {
@@ -93,6 +98,7 @@ export const DEFAULT_TABS: Tab[] = [
     windows: null,
     customDuration: null,
     useProxy: false,
+    inject: [],
     icon: "",
   },
   {
@@ -104,6 +110,7 @@ export const DEFAULT_TABS: Tab[] = [
     windows: null,
     customDuration: null,
     useProxy: false,
+    inject: [],
     icon: "󰖉",
   },
   {
@@ -115,6 +122,7 @@ export const DEFAULT_TABS: Tab[] = [
     windows: null,
     customDuration: null,
     useProxy: false,
+    inject: [],
     icon: "󱉓",
   },
 ];

@@ -11,6 +11,20 @@ const TabWindowModel = t.Object({
   days: t.Array(t.Integer({ minimum: 0, maximum: 6 })),
 });
 
+// Shape only — the per-kind key rules (header tokens, no line breaks, no Host
+// override) are enforced by TabsService via injection.ts, returning a 422.
+const InjectionModel = t.Object({
+  kind: t.Union([
+    t.Literal("requestHeader"),
+    t.Literal("responseHeader"),
+    t.Literal("cookie"),
+    t.Literal("query"),
+    t.Literal("localStorage"),
+  ]),
+  key: t.String({ minLength: 1 }),
+  value: t.String(),
+});
+
 const TabBodyModel = t.Object({
   url: t.String(),
   title: t.String(),
@@ -20,6 +34,7 @@ const TabBodyModel = t.Object({
   customDuration: t.Optional(t.Nullable(t.Number())),
   icon: t.Optional(t.Nullable(t.String())),
   useProxy: t.Optional(t.Boolean()),
+  inject: t.Optional(t.Array(InjectionModel)),
 });
 
 const TabModel = t.Object({
@@ -32,6 +47,7 @@ const TabModel = t.Object({
   customDuration: t.Nullable(t.Number()),
   icon: t.Nullable(t.String()),
   useProxy: t.Boolean(),
+  inject: t.Array(InjectionModel),
 });
 
 const TabHealthModel = t.Record(
@@ -81,13 +97,22 @@ export const tabsController = new Elysia({ prefix: "/tabs" })
   })
   .post("/", ({ body }) => service.create(body), {
     body: "TabBody",
-    response: { 200: "Tab", 400: "BadRequestError" },
+    response: {
+      200: "Tab",
+      400: "BadRequestError",
+      422: "UnprocessableEntityError",
+    },
     detail: { summary: "Create a new tab", tags: ["tabs"] },
   })
   .put("/:id", ({ params: { id }, body }) => service.update(id, body), {
     params: t.Object({ id: t.String() }),
     body: "TabBody",
-    response: { 200: "Tab", 404: "NotFoundError", 400: "BadRequestError" },
+    response: {
+      200: "Tab",
+      404: "NotFoundError",
+      400: "BadRequestError",
+      422: "UnprocessableEntityError",
+    },
     detail: { summary: "Update a tab", tags: ["tabs"] },
   })
   .delete("/:id", ({ params: { id } }) => service.delete(id), {

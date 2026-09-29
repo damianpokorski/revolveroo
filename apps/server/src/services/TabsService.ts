@@ -1,8 +1,9 @@
 import type { DisplaysRepository } from "../db/DisplaysRepository";
 import type { Tab, TabsRepository } from "../db/TabsRepository";
 import type { WindowsRepository } from "../db/WindowsRepository";
-import { BadRequestError, NotFoundError } from "../errors";
+import { BadRequestError, NotFoundError, UnprocessableEntityError } from "../errors";
 import { notifyDataChanged } from "../events";
+import { type Injection, injectionError } from "../injection";
 import { isProxyableUrl } from "../proxyUrl";
 import type { TabWindow } from "../store/types";
 
@@ -15,6 +16,7 @@ export interface TabBody {
   customDuration?: number | null;
   icon?: string | null;
   useProxy?: boolean;
+  inject?: Injection[];
 }
 
 export class TabsService {
@@ -37,6 +39,7 @@ export class TabsService {
   async create(data: TabBody): Promise<Tab> {
     await this.validateReferences(data);
     this.validateProxyUrl(data.url, data.useProxy ?? false);
+    this.validateInjections(data);
     const tab = await this.repo.create({
       inLoop: true,
       displays: null,
@@ -44,6 +47,7 @@ export class TabsService {
       customDuration: null,
       icon: null,
       useProxy: false,
+      inject: [],
       ...data,
     });
     notifyDataChanged();
@@ -56,6 +60,7 @@ export class TabsService {
     // useProxy may be omitted from a PUT body, in which case the stored value
     // stays — so a URL-only edit of an already-proxied tab is still validated.
     this.validateProxyUrl(data.url, data.useProxy ?? existing.useProxy);
+    this.validateInjections(data);
     const tab = await this.repo.update(id, data);
     if (!tab) throw new NotFoundError("Tab not found");
     notifyDataChanged();
@@ -88,6 +93,18 @@ export class TabsService {
   private validateProxyUrl(url: string, useProxy: boolean): void {
     if (useProxy && !isProxyableUrl(url)) {
       throw new BadRequestError("A proxied tab needs a valid http(s) URL");
+    }
+  }
+
+  // TypeBox only checks the rows' shape; the per-kind rules (header-name tokens,
+  // no line breaks, no Host override) are shared with the store schema, since
+  // these values get spliced into the Caddyfile and into HTTP headers.
+  private validateInjections(data: TabBody): void {
+    for (const [index, injection] of (data.inject ?? []).entries()) {
+      const issue = injectionError(injection);
+      if (issue) {
+        throw new UnprocessableEntityError(`inject[${index}].${issue.field} ${issue.message}`);
+      }
     }
   }
 

@@ -39,6 +39,44 @@ The proxy is designed for a trusted network. Read the [security model](/revolver
 
 ![The tab form with Route through proxy ticked.](../../../assets/screenshots/tab-proxy.png)
 
+## Inject headers, cookies and storage
+
+A proxied tab can also carry a list of values that Revolveroo injects for it. Add them under **Inject** in the tab's form, which appears once **Route through proxy** is ticked.
+
+| Kind            | Where it goes                              | When                                              |
+| --------------- | ------------------------------------------ | ------------------------------------------------- |
+| Request header  | Added to every request sent to the service | Every request                                     |
+| Response header | Added to every response from the service   | Every response                                    |
+| Cookie          | Set on the tab's proxied address           | Every time the frame loads                        |
+| Query param     | Added to the tab's starting URL            | The first page load only                          |
+| localStorage    | Written into the service's `localStorage`  | Every time the frame loads, overwriting any value |
+
+The last two exist because some settings live only in the browser. Home Assistant, for example, keeps "always hide the sidebar" in `localStorage`. The **Home Assistant: hide sidebar** preset adds the row for it:
+
+```yaml
+tabs:
+  home-assistant:
+    title: Home Assistant
+    url: http://ha.media.server:8123/lovelace/0
+    useProxy: true
+    inject:
+      - kind: localStorage
+        key: dockedSidebar
+        value: '"always_hidden"'
+```
+
+Home Assistant stores the value JSON-encoded, which is why it keeps its own quotes.
+
+Cookie and `localStorage` rows work through a small page Revolveroo serves at `/__revolveroo/seed` on the tab's own address. It writes the values, then sends the frame on to the tab's URL. Some details:
+
+- A cookie is set with `Path=/` unless its value names a path. You can add attributes to the value, for example `abc; HttpOnly`.
+- Cookies only stick when the kiosk and the proxied addresses are the same site, for example the kiosk at `revolveroo.media.server` and the tabs under `*.revolveroo.media.server`. Opening the kiosk by IP address makes the proxied tab a third-party frame, and browsers drop its cookies.
+- `/__revolveroo/seed` is reserved on every proxied address. If the service has a real page at that path, it can't be reached through the proxy.
+- A `localStorage` value is overwritten on every load, so changing that setting inside the service only lasts until the frame reloads.
+- Header values can use Caddy placeholders. For example, `{env.HA_TOKEN}` is replaced with that environment variable of the container.
+
+Values are stored as plaintext in the data file and anyone who can reach the API can read them. See the [security model](/revolveroo-draft/reference/security/).
+
 ## Limits
 
 - The bundled proxy is **plain HTTP only**. If Revolveroo itself is served over HTTPS by an external front proxy, embedding a plain-HTTP proxied subdomain in that page hits the browser's mixed-content block. In that setup, leave proxied tabs off, or extend the external proxy to terminate TLS for the wildcard subdomain too.

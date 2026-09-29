@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, mock, test } from "bun:test";
 import type { DisplaysRepository } from "../db/DisplaysRepository";
 import type { Tab, TabsRepository } from "../db/TabsRepository";
 import type { WindowsRepository } from "../db/WindowsRepository";
-import { BadRequestError, NotFoundError } from "../errors";
+import { BadRequestError, NotFoundError, UnprocessableEntityError } from "../errors";
 import { TabsService } from "./TabsService";
 
 const findAllMock = mock();
@@ -44,6 +44,7 @@ const sampleTab: Tab = {
   customDuration: null,
   icon: null,
   useProxy: false,
+  inject: [],
 };
 
 beforeEach(() => {
@@ -113,6 +114,7 @@ describe("create", () => {
       customDuration: null,
       icon: null,
       useProxy: false,
+      inject: [],
     });
     expect(result).toEqual(sampleTab);
   });
@@ -285,5 +287,87 @@ describe("reorder", () => {
     // Act & Assert
     await expect(service.reorder(["bogus"])).rejects.toThrow(BadRequestError);
     expect(reorderMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("injections", () => {
+  test("create defaults inject to an empty list", async () => {
+    // Arrange
+    createMock.mockResolvedValue(sampleTab);
+
+    // Act
+    await service.create({ title: "X", url: "https://example.com" });
+
+    // Assert
+    expect(createMock.mock.calls[0]?.[0]).toMatchObject({ inject: [] });
+  });
+
+  test("create rejects a Host override with a 422 naming the row, without writing", async () => {
+    // Arrange
+    const body = {
+      title: "X",
+      url: "https://example.com",
+      useProxy: true,
+      inject: [
+        {
+          kind: "localStorage" as const,
+          key: "dockedSidebar",
+          value: '"always_hidden"',
+        },
+        { kind: "requestHeader" as const, key: "Host", value: "evil.example" },
+      ],
+    };
+
+    // Act
+    const result = service.create(body);
+
+    // Assert
+    await expect(result).rejects.toThrow(UnprocessableEntityError);
+    await expect(result).rejects.toThrow(/^inject\[1\]\.key /);
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  test("update rejects a line break in a value", async () => {
+    // Arrange
+    findByIdMock.mockResolvedValue({ ...sampleTab, useProxy: true });
+    const body = {
+      title: "X",
+      url: "https://example.com",
+      inject: [
+        {
+          kind: "responseHeader" as const,
+          key: "X-A",
+          value: "1\r\nSet-Cookie: x=1",
+        },
+      ],
+    };
+
+    // Act
+    const result = service.update("example", body);
+
+    // Assert
+    await expect(result).rejects.toThrow(UnprocessableEntityError);
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  test("update stores valid rows", async () => {
+    // Arrange
+    findByIdMock.mockResolvedValue({ ...sampleTab, useProxy: true });
+    updateMock.mockResolvedValue(sampleTab);
+    const inject = [{ kind: "cookie" as const, key: "session", value: "abc; HttpOnly" }];
+
+    // Act
+    await service.update("example", {
+      title: "X",
+      url: "https://example.com",
+      inject,
+    });
+
+    // Assert
+    expect(updateMock).toHaveBeenCalledWith("example", {
+      title: "X",
+      url: "https://example.com",
+      inject,
+    });
   });
 });

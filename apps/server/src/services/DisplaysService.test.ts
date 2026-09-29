@@ -91,6 +91,7 @@ describe("delete", () => {
       customDuration: null,
       icon: null,
       useProxy: false,
+      inject: [],
     };
     const multiDisplay: Tab = {
       ...onlyDisplay,

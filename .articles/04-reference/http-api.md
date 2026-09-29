@@ -32,6 +32,15 @@ curl http://localhost/api/health
 
 The main resources are `/api/tabs`, `/api/windows`, `/api/displays` and `/api/config`, plus a read-only overview feed. They mirror the sections of the [data file](/revolveroo-draft/reference/data-file-schema/).
 
+## Proxy
+
+These only matter when `PROXY_DOMAIN` is set. See [Embedding services that block iframing](/revolveroo-draft/guides/embedding-blocked-services/).
+
+| Route                              | Purpose                                                                                                                                                                                               |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/proxy/frames`            | `{ enabled, frames }`, the address each proxied tab's frame should load, keyed by tab id. The kiosk fetches this because the addresses are derived from a server-side secret.                         |
+| `GET /api/proxy/seed/:tabId?next=` | The seed page that writes a tab's cookie and `localStorage` rows, then redirects to `next`. The proxy serves it at `/__revolveroo/seed` on the tab's own address, and it answers `404` anywhere else. |
+
 ## Cross-origin requests
 
 In production the API sends no CORS headers, because the web UI is served from the same origin. State-changing requests (`POST`, `PUT`, `PATCH`, `DELETE`) that a browser reports as coming from another site or origin are refused with `403`. Scripts and `curl` send no `Origin` header and are unaffected.

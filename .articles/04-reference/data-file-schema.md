@@ -87,5 +87,18 @@ Every field has a default, so you can leave out anything you do not need.
 | `customDuration` | positive integer, or `null`             | `null`  | Milliseconds. Overrides `playbackInterval` for this tab.                         |
 | `icon`           | string, or `null`                       | `null`  | A Nerd Font glyph or emoji.                                                      |
 | `useProxy`       | boolean                                 | `false` | Route through the [proxy](/revolveroo-draft/guides/embedding-blocked-services/). |
+| `inject`         | list of `{ kind, key, value }`          | `[]`    | Values injected while the tab is proxied. See below.                             |
+
+### `tabs.*.inject`
+
+Only applied while `useProxy` is on. What each kind does is described in [Inject headers, cookies and storage](/revolveroo-draft/guides/embedding-blocked-services/#inject-headers-cookies-and-storage).
+
+| Field   | Type             | Notes                                                                                |
+| ------- | ---------------- | ------------------------------------------------------------------------------------ |
+| `kind`  | enum             | `requestHeader`, `responseHeader`, `cookie`, `query`, `localStorage`                 |
+| `key`   | non-empty string | Header and cookie names must be valid HTTP names. `Host` can't be a `requestHeader`. |
+| `value` | string           | May be empty.                                                                        |
+
+Neither `key` nor `value` may contain a line break. A tab whose `inject` list breaks these rules is rejected as a whole, the same as any other invalid tab entry.
 
 A tab is visible on a display at a given moment when its `displays` rule matches that display and at least one of its `windows` entries covers the current day and time.

@@ -4,6 +4,7 @@ import Icon from "$lib/icons/Icon.svelte";
 import type { EditTabWindow, ShowsOnMode } from "$lib/types";
 import { visible } from "$lib/visibility";
 import IconPicker from "./IconPicker.svelte";
+import InjectionList from "./InjectionList.svelte";
 
 interface Props {
 	tab?: TabData;
@@ -34,6 +35,8 @@ let inLoop = $state(tab?.inLoop ?? true);
 let customDurationEnabled = $state(tab?.customDuration != null);
 let customDuration = $state(tab?.customDuration ?? 5000);
 let useProxy = $state(tab?.useProxy ?? false);
+// Deep-copied so editing a row never mutates the tab prop before Save.
+let inject = $state((tab?.inject ?? []).map((row) => ({ ...row })));
 
 let showsOnMode = $state<ShowsOnMode>(
 	!tab?.displays || tab.displays.length === 0 ? "every" : "specific",
@@ -175,6 +178,8 @@ function handleSave() {
 		displays: showsOnMode === "every" ? null : selectedDisplays,
 		windows: whenMode === "any" ? null : tabWindows,
 		useProxy,
+		// Rows left without a key are unfinished — drop them rather than 422.
+		inject: inject.filter((row) => row.key.trim() !== ""),
 	});
 }
 </script>
@@ -236,8 +241,9 @@ function handleSave() {
 		</label>
 		{#if useProxy}
 			<p class="rv-mono proxy-hint" data-testid="tab-proxy-hint">
-				Served through a generated per-boot subdomain — for services that refuse to be iframed directly
+				Served through a generated private subdomain — for services that refuse to be iframed directly
 			</p>
+			<InjectionList bind:rows={inject} />
 		{/if}
 	{/if}
 </div>

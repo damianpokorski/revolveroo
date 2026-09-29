@@ -24,6 +24,14 @@ Proxying puts an internal service behind a name your network can resolve, so it 
 - **Leak-resistant.** `Referrer-Policy: same-origin` keeps the address from reaching third-party CDNs that the proxied page loads from, and `Server` and `Via` are stripped.
 - **Only valid `http(s)` URLs.** The API rejects a proxied tab whose URL is not a real `http` or `https` URL. A bad hand-edit in the YAML file is skipped with a warning instead of breaking the proxy for every tab.
 
+## Injected values
+
+A proxied tab can [inject headers, cookies, query params and `localStorage` values](/revolveroo-draft/guides/embedding-blocked-services/#inject-headers-cookies-and-storage).
+
+- **Stored as plaintext.** Values sit in the data file as written, and the API returns them to anyone who can reach it. For a secret, such as an access token in a header, put it in an environment variable and reference it as `{env.NAME}`. Caddy fills it in, and only the reference is stored.
+- **No config or header injection.** A key or value containing a line break is refused, since values are written into the proxy's configuration and into HTTP headers. Header and cookie names must be valid HTTP names, and the `Host` request header can't be overridden, because the proxy relies on it to reach the service.
+- **The seed page can't be used as a redirect.** `/__revolveroo/seed` only sends the browser on to a path on the same proxied address. Anything else, including tricks like `//other.host` or `/\other.host`, lands on `/`. It only answers on the tab's own proxied address, never on Revolveroo's, and sits behind the same direct-browsing block as the rest of the tab.
+
 ## What this does not do
 
 The proxied addresses are capability URLs, not credentials. Because the API has no login, anyone who can reach it can still ask for the current addresses. The hardening defends against enumeration, cross-site framing and drive-by requests on a trusted network. It does not defend against a hostile peer who can call the API.

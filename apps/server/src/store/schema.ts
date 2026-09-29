@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { INJECTION_KINDS, injectionError } from "../injection";
 import { KIOSK_CONTROLS, KIOSK_CONTROLS_SIZES, TAB_TRANSITIONS, THEMES } from "./types";
 
 // File-content validation for the YAML data file — distinct from the route-level
@@ -37,6 +38,25 @@ const TabWindowSchema = z.object({
   days: z.array(z.number().int().min(0).max(6)).default([]),
 });
 
+// The per-kind rules live in injection.ts so the API's 422s and this hand-edit
+// check can't drift apart. A bad row rejects its whole tab entry, which then keeps
+// its previous value — these values get spliced into the Caddyfile.
+const InjectionSchema = z
+  .object({
+    kind: z.enum(INJECTION_KINDS),
+    key: z.string().min(1),
+    value: z.string(),
+  })
+  .superRefine((injection, ctx) => {
+    const issue = injectionError(injection);
+    if (issue)
+      ctx.addIssue({
+        code: "custom",
+        message: issue.message,
+        path: [issue.field],
+      });
+  });
+
 export const TabEntrySchema = z.object({
   title: z.string().min(1),
   url: z.string().min(1),
@@ -46,6 +66,7 @@ export const TabEntrySchema = z.object({
   customDuration: z.number().int().positive().nullable().default(null),
   icon: z.string().nullable().default(null),
   useProxy: z.boolean().default(false),
+  inject: z.array(InjectionSchema).default([]),
 });
 
 export const ConfigSchema = z.object({

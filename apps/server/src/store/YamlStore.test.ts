@@ -37,6 +37,7 @@ const sampleTabData = {
   customDuration: null,
   icon: null,
   useProxy: false,
+  inject: [],
 };
 
 let dir: string;

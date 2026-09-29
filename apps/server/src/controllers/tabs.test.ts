@@ -46,6 +46,7 @@ const sampleTab = {
   customDuration: null,
   icon: null,
   useProxy: false,
+  inject: [],
 };
 
 beforeEach(() => {

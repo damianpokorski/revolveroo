@@ -59,6 +59,7 @@ function tab(overrides: Partial<Tab>): Tab {
     customDuration: null,
     icon: null,
     useProxy: false,
+    inject: [],
     ...overrides,
   };
 }

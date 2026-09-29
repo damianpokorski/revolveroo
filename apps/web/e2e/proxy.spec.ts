@@ -192,3 +192,102 @@ test.describe("Tab proxy (Caddy)", () => {
     }
   });
 });
+
+// Injection rows (apps/server/src/injection.ts), proven against the real Caddy
+// config rather than just the generated text — the seed route's placement
+// relative to the navigation gate and the CSP header ordering only show up live.
+test.describe("Tab proxy injection (Caddy)", () => {
+  const ECHO_URL = "http://localhost:4310/echo?from=tab";
+  const INJECT = [
+    { kind: "requestHeader", key: "X-Revolveroo-Test", value: "injected" },
+    { kind: "responseHeader", key: "X-Revolveroo-Resp", value: "added" },
+    { kind: "cookie", key: "e2e_seed", value: "1" },
+    { kind: "localStorage", key: "dockedSidebar", value: '"always_hidden"' },
+    { kind: "query", key: "kiosk", value: "1" },
+  ];
+
+  test("the seed page is served on the tab's own host, sets its cookies and refuses to redirect off-host", async ({
+    page,
+    request,
+  }) => {
+    const created = await createTab(request, {
+      title: "Inject fixture",
+      url: ECHO_URL,
+      inLoop: false,
+      useProxy: true,
+      inject: INJECT,
+    });
+
+    try {
+      const url = await frameUrlFor(request, created.id);
+      const { origin, pathname, searchParams } = new URL(url);
+      expect(pathname).toBe("/__revolveroo/seed");
+      expect(searchParams.get("next")).toBe("/echo?from=tab&kiosk=1");
+      await waitForRoute(request, url);
+
+      const seed = await request.get(url);
+      const seedHeaders = seed.headers();
+      expect(seedHeaders["cache-control"]).toBe("no-store");
+      expect(seedHeaders["set-cookie"]).toContain("e2e_seed=1; Path=/");
+      expect(seedHeaders["content-security-policy"]).toContain(
+        "frame-ancestors http://localhost:5173",
+      );
+      expect(await seed.text()).toContain('"next":"/echo?from=tab&kiosk=1"');
+
+      // The request context kept the seeded cookie, so the upstream receives it
+      // alongside the injected request header.
+      const echo = await request.get(`${origin}/echo`);
+      expect(echo.headers()["x-revolveroo-resp"]).toBe("added");
+      const echoed = await echo.text();
+      expect(echoed).toContain('"x-revolveroo-test":"injected"');
+      expect(echoed).toContain("e2e_seed=1");
+
+      const offHost = await request.get(
+        `${origin}/__revolveroo/seed?next=${encodeURIComponent("//evil.example/")}`,
+      );
+      expect(await offHost.text()).toContain('"next":"/"');
+
+      // The seed route sits behind the same top-level-navigation gate as the app.
+      const direct = await page.goto(url);
+      expect(direct?.status()).toBe(403);
+    } finally {
+      await deleteTab(request, created.id);
+    }
+  });
+
+  test("the kiosk frame lands on the tab with its localStorage seeded and headers injected", async ({
+    page,
+    request,
+  }) => {
+    const created = await createTab(request, {
+      title: "Inject kiosk fixture",
+      url: ECHO_URL,
+      inLoop: false,
+      useProxy: true,
+      inject: INJECT,
+    });
+
+    try {
+      await waitForRoute(request, await frameUrlFor(request, created.id));
+      const cell = page.locator(`[data-testid="hud-cell"][data-tab-id="${created.id}"]`);
+      const frame = page.frameLocator(
+        `[data-testid="kiosk-iframe"][data-tab-id="${created.id}"][data-frame-role="live"]`,
+      );
+
+      await page.goto("/");
+      await expect(async () => {
+        await page.reload();
+        await cell.click();
+        await expect(frame.getByTestId("echo-storage")).toContainText(
+          '"dockedSidebar":"\\"always_hidden\\""',
+          { timeout: 2000 },
+        );
+      }).toPass({ timeout: 15_000 });
+      await expect(frame.getByTestId("echo-headers")).toContainText(
+        '"x-revolveroo-test":"injected"',
+      );
+    } finally {
+      await deleteTab(request, created.id);
+    }
+  });
+});

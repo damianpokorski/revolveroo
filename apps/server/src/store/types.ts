@@ -1,3 +1,5 @@
+import type { Injection } from "../injection";
+
 export const THEMES = [
   "mocha",
   "macchiato",
@@ -55,9 +57,13 @@ export interface Tab {
   displays: string[] | null;
   windows: TabWindow[] | null;
   // Route this tab's iframe through the optional Caddy reverse proxy
-  // (http://{id}.{PROXY_DOMAIN}) instead of loading `url` directly — for
-  // services that refuse to be framed. No-op if PROXY_DOMAIN isn't configured.
+  // (http://{label}.{PROXY_DOMAIN}, label from ProxyKeyring) instead of loading
+  // `url` directly — for services that refuse to be framed. No-op if
+  // PROXY_DOMAIN isn't configured.
   useProxy: boolean;
+  // Headers/cookies/query params/localStorage injected for this tab (see
+  // injection.ts). Only applied while the tab is proxied.
+  inject: Injection[];
 }
 
 export interface Config {
