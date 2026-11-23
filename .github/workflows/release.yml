@@ -74,7 +74,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
-          images: ghcr.io/damianpokorski/revolveroo-draft
+          images: ghcr.io/damianpokorski/revolveroo
           tags: |
             type=raw,value=${{ needs.release.outputs.version }}
             type=raw,value=latest

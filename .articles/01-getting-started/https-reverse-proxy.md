@@ -13,7 +13,7 @@ The Caddy that ships inside the image is plain HTTP only, by design. To serve a 
 # docker-compose.yml
 services:
   revolveroo:
-    image: ghcr.io/damianpokorski/revolveroo-draft:latest # or a pinned version
+    image: ghcr.io/damianpokorski/revolveroo:latest # or a pinned version
     restart: unless-stopped
     expose:
       - "80"
@@ -47,9 +47,9 @@ revolveroo.example.com {
 `revolveroo` publishes no port to the host. It only `expose`s port 80 on the compose network, because the external `caddy` service is the only thing that should reach it.
 
 :::note[If your proxy rewrites the Host header]
-Send `X-Forwarded-Host` as well. Revolveroo uses it to decide whether a browser request comes from its own origin. See the [security model](/revolveroo-draft/reference/security/).
+Send `X-Forwarded-Host` as well. Revolveroo uses it to decide whether a browser request comes from its own origin. See the [security model](/revolveroo/reference/security/).
 :::
 
 :::caution
-Mixed content applies. If the app is served over HTTPS, a plain-HTTP proxied subdomain embedded in the page will be blocked by the browser. See [Embedding services that block iframing](/revolveroo-draft/guides/embedding-blocked-services/).
+Mixed content applies. If the app is served over HTTPS, a plain-HTTP proxied subdomain embedded in the page will be blocked by the browser. See [Embedding services that block iframing](/revolveroo/guides/embedding-blocked-services/).
 :::

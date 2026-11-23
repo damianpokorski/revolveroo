@@ -16,7 +16,7 @@ Revolveroo is built for a trusted home or office network. **Its API has no login
 
 ## How proxied tabs are protected
 
-Proxying puts an internal service behind a name your network can resolve, so it is locked down more than a plain iframe would be. See [Embedding services that block iframing](/revolveroo-draft/guides/embedding-blocked-services/) for setup.
+Proxying puts an internal service behind a name your network can resolve, so it is locked down more than a plain iframe would be. See [Embedding services that block iframing](/revolveroo/guides/embedding-blocked-services/) for setup.
 
 - **Unguessable, persisted subdomains.** A proxied tab is served from `{24 hex chars}.{PROXY_DOMAIN}`, not from a name derived from its title. The label is an HMAC of the tab id under a secret stored in `.proxy-secret`, next to the data file — generated once and kept stable across restarts, so a session a proxied service sets (cookies, `localStorage`, etc.) isn't lost every time the container restarts. To force new addresses for every tab at once, for example after a URL leaked, stop the server, delete `.proxy-secret`, and start it again; kiosks pick up the new addresses on their own and swap frames in the background, keeping the old frame on screen until the new one has loaded. Every other name under the domain answers `404`.
 - **Only Revolveroo can frame it.** The upstream's own `X-Frame-Options` and `frame-ancestors` are removed and replaced with an allowlist of the origins in `PROXY_APP_ORIGINS`, so a malicious page cannot clickjack a proxied service. The rest of the upstream's Content-Security-Policy is kept.
@@ -26,7 +26,7 @@ Proxying puts an internal service behind a name your network can resolve, so it 
 
 ## Injected values
 
-A proxied tab can [inject headers, cookies, query params and `localStorage` values](/revolveroo-draft/guides/embedding-blocked-services/#inject-headers-cookies-and-storage).
+A proxied tab can [inject headers, cookies, query params and `localStorage` values](/revolveroo/guides/embedding-blocked-services/#inject-headers-cookies-and-storage).
 
 - **Stored as plaintext.** Values sit in the data file as written, and the API returns them to anyone who can reach it. For a secret, such as an access token in a header, put it in an environment variable and reference it as `{env.NAME}`. Caddy fills it in, and only the reference is stored.
 - **No config or header injection.** A key or value containing a line break is refused, since values are written into the proxy's configuration and into HTTP headers. Header and cookie names must be valid HTTP names, and the `Host` request header can't be overridden, because the proxy relies on it to reach the service.

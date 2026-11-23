@@ -79,23 +79,23 @@ Every field has a default, so you can leave out anything you do not need.
 
 ## `tabs`
 
-| Field             | Type                                    | Default | Notes                                                                            |
-| ----------------- | --------------------------------------- | ------- | -------------------------------------------------------------------------------- |
-| `title`           | non-empty string                        |         |                                                                                  |
-| `url`             | non-empty string                        |         |                                                                                  |
-| `inLoop`          | boolean                                 | `true`  | `false` is HUD only.                                                             |
-| `displays`        | list of display ids, or `null`          | `null`  | `null` or an empty list means every display.                                     |
-| `windows`         | list of `{ windowId, days }`, or `null` | `null`  | `null` or an empty list means any time.                                          |
-| `windows[].days`  | list of integers 0 to 6                 | `[]`    | 0 is Sunday. An empty list means every day.                                      |
-| `customDuration`  | positive integer, or `null`             | `null`  | Milliseconds. Overrides `playbackInterval` for this tab.                         |
-| `refreshInterval` | integer of at least `60000`, or `null`  | `null`  | Milliseconds between background reloads of this tab. `null` never refreshes.     |
-| `icon`            | string, or `null`                       | `null`  | A Nerd Font glyph or emoji.                                                      |
-| `useProxy`        | boolean                                 | `false` | Route through the [proxy](/revolveroo-draft/guides/embedding-blocked-services/). |
-| `inject`          | list of `{ kind, key, value }`          | `[]`    | Values injected while the tab is proxied. See below.                             |
+| Field             | Type                                    | Default | Notes                                                                        |
+| ----------------- | --------------------------------------- | ------- | ---------------------------------------------------------------------------- |
+| `title`           | non-empty string                        |         |                                                                              |
+| `url`             | non-empty string                        |         |                                                                              |
+| `inLoop`          | boolean                                 | `true`  | `false` is HUD only.                                                         |
+| `displays`        | list of display ids, or `null`          | `null`  | `null` or an empty list means every display.                                 |
+| `windows`         | list of `{ windowId, days }`, or `null` | `null`  | `null` or an empty list means any time.                                      |
+| `windows[].days`  | list of integers 0 to 6                 | `[]`    | 0 is Sunday. An empty list means every day.                                  |
+| `customDuration`  | positive integer, or `null`             | `null`  | Milliseconds. Overrides `playbackInterval` for this tab.                     |
+| `refreshInterval` | integer of at least `60000`, or `null`  | `null`  | Milliseconds between background reloads of this tab. `null` never refreshes. |
+| `icon`            | string, or `null`                       | `null`  | A Nerd Font glyph or emoji.                                                  |
+| `useProxy`        | boolean                                 | `false` | Route through the [proxy](/revolveroo/guides/embedding-blocked-services/).   |
+| `inject`          | list of `{ kind, key, value }`          | `[]`    | Values injected while the tab is proxied. See below.                         |
 
 ### `tabs.*.inject`
 
-Only applied while `useProxy` is on. What each kind does is described in [Inject headers, cookies and storage](/revolveroo-draft/guides/embedding-blocked-services/#inject-headers-cookies-and-storage).
+Only applied while `useProxy` is on. What each kind does is described in [Inject headers, cookies and storage](/revolveroo/guides/embedding-blocked-services/#inject-headers-cookies-and-storage).
 
 | Field   | Type             | Notes                                                                                |
 | ------- | ---------------- | ------------------------------------------------------------------------------------ |

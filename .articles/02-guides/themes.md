@@ -21,6 +21,6 @@ Latte, Ros&eacute; Pine Dawn, Tokyo Night Day and Kanagawa Lotus are the light t
 
 ![The kiosk using the Latte light theme.](../../../assets/screenshots/kiosk-light.png)
 
-The theme is stored in the data file as `config.theme`, using ids such as `mocha`, `rose-pine-dawn` or `tokyo-night-day`. See the [data file schema](/revolveroo-draft/reference/data-file-schema/) for the full list.
+The theme is stored in the data file as `config.theme`, using ids such as `mocha`, `rose-pine-dawn` or `tokyo-night-day`. See the [data file schema](/revolveroo/reference/data-file-schema/) for the full list.
 
 The theme affects Revolveroo's own chrome only. The dashboards inside your tabs keep their own styling.

@@ -9,10 +9,10 @@ hero:
     alt: The Revolveroo kiosk showing a dashboard with the tab HUD in the bottom-right corner.
   actions:
     - text: Get started
-      link: /revolveroo-draft/getting-started/install/
+      link: /revolveroo/getting-started/install/
       icon: right-arrow
     - text: View on GitHub
-      link: https://github.com/damianpokorski/revolveroo-draft
+      link: https://github.com/damianpokorski/revolveroo
       variant: minimal
 ---
 
@@ -27,6 +27,6 @@ Revolveroo is built for a house full of screens, not just one. A single ordered 
 
 ## Where to go next
 
-- New here? Follow [Install with Docker](/revolveroo-draft/getting-started/install/), then [Set up your first kiosk](/revolveroo-draft/getting-started/first-kiosk/).
-- Looking for something specific? The [guides](/revolveroo-draft/guides/displays/) cover each feature, and the [reference](/revolveroo-draft/reference/environment-variables/) lists every setting.
-- Running from source or contributing? See [CONTRIBUTING.md](https://github.com/damianpokorski/revolveroo-draft/blob/main/CONTRIBUTING.md).
+- New here? Follow [Install with Docker](/revolveroo/getting-started/install/), then [Set up your first kiosk](/revolveroo/getting-started/first-kiosk/).
+- Looking for something specific? The [guides](/revolveroo/guides/displays/) cover each feature, and the [reference](/revolveroo/reference/environment-variables/) lists every setting.
+- Running from source or contributing? See [CONTRIBUTING.md](https://github.com/damianpokorski/revolveroo/blob/main/CONTRIBUTING.md).

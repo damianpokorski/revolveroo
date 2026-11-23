@@ -13,7 +13,7 @@ Open `http://localhost/settings` and add a **Display** for each physical screen.
 
 ![The display form with a name, a query parameter match rule and a join URL with QR code.](../../../assets/screenshots/display-form.png)
 
-See [Displays](/revolveroo-draft/guides/displays/) for how matching works.
+See [Displays](/revolveroo/guides/displays/) for how matching works.
 
 ## 2. Add your dashboards
 
@@ -26,12 +26,12 @@ In the tab's **Shows on** and **When** block:
 - Leave **Every display** on, or pick specific displays.
 - Leave **Any time** on, or scope the tab to one or more time windows.
 
-Choose **In the loop: HUD only** if a tab should be reachable by hand but skipped during autoplay. Drag the grip handle on any row to reorder. See [Tabs](/revolveroo-draft/guides/tabs/) for every option.
+Choose **In the loop: HUD only** if a tab should be reachable by hand but skipped during autoplay. Drag the grip handle on any row to reorder. See [Tabs](/revolveroo/guides/tabs/) for every option.
 
 ## 3. Open the kiosk
 
-Go to `http://localhost`, or a display's join URL, on the screen itself. The carousel starts immediately. Tap the HUD in the bottom-right corner for the full tab grid, from which you can jump to a tab, toggle autoplay, reload the current tab, dim the screen, or go to settings. See [The kiosk and HUD](/revolveroo-draft/guides/kiosk-and-hud/).
+Go to `http://localhost`, or a display's join URL, on the screen itself. The carousel starts immediately. Tap the HUD in the bottom-right corner for the full tab grid, from which you can jump to a tab, toggle autoplay, reload the current tab, dim the screen, or go to settings. See [The kiosk and HUD](/revolveroo/guides/kiosk-and-hud/).
 
 ## 4. Check on everything
 
-`http://localhost/overview` is read-only. It shows anything that needs attention, a card per display with its current tab and online status, and a grid of where every tab lands. See [Overview](/revolveroo-draft/guides/overview/).
+`http://localhost/overview` is read-only. It shows anything that needs attention, a card per display with its current tab and online status, and a grid of where every tab lands. See [Overview](/revolveroo/guides/overview/).

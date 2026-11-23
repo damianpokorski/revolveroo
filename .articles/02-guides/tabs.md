@@ -17,7 +17,7 @@ Drag the grip handle on any row to reorder. The order in the list is the order o
 
 ## Icon
 
-Each tab can carry an icon, chosen from a searchable picker of Nerd Font glyphs and emoji. Icons appear in the HUD. Attribution for the glyph set is in the repository's [third-party licences](https://github.com/damianpokorski/revolveroo-draft/blob/main/apps/web/static/icons/THIRD_PARTY_LICENSES.md).
+Each tab can carry an icon, chosen from a searchable picker of Nerd Font glyphs and emoji. Icons appear in the HUD. Attribution for the glyph set is in the repository's [third-party licences](https://github.com/damianpokorski/revolveroo/blob/main/apps/web/static/icons/THIRD_PARTY_LICENSES.md).
 
 ## In the loop
 
@@ -40,14 +40,14 @@ The **Shows on** and **When** block decides where and when a tab plays.
 
 ![The tab conditions block with a time window row added.](../../../assets/screenshots/tab-conditions.png)
 
-- **Shows on**: leave **Every display** on, or choose specific [displays](/revolveroo-draft/guides/displays/).
-- **When**: leave **Any time** on, or choose **Only in these windows** and add one or more [time windows](/revolveroo-draft/guides/time-windows/).
+- **Shows on**: leave **Every display** on, or choose specific [displays](/revolveroo/guides/displays/).
+- **When**: leave **Any time** on, or choose **Only in these windows** and add one or more [time windows](/revolveroo/guides/time-windows/).
 
 The **Reads as** line spells out the result in plain words, for example "Plays on every display, any time", so you can check a rule at a glance.
 
 ## Route through proxy
 
-Some services refuse to load in an iframe. Tick **Route through proxy** to serve that tab through Revolveroo's bundled proxy. This needs some one-time setup; see [Embedding services that block iframing](/revolveroo-draft/guides/embedding-blocked-services/).
+Some services refuse to load in an iframe. Tick **Route through proxy** to serve that tab through Revolveroo's bundled proxy. This needs some one-time setup; see [Embedding services that block iframing](/revolveroo/guides/embedding-blocked-services/).
 
 ## Delete a tab
 

@@ -12,7 +12,7 @@ Revolveroo can do this itself. A per-tab toggle routes that tab's traffic throug
 This is entirely optional. Tabs load their URL directly unless you turn it on.
 
 :::caution
-The proxy is designed for a trusted network. Read the [security model](/revolveroo-draft/reference/security/) before enabling it.
+The proxy is designed for a trusted network. Read the [security model](/revolveroo/reference/security/) before enabling it.
 :::
 
 ## Set it up
@@ -22,7 +22,7 @@ The proxy is designed for a trusted network. Read the [security model](/revolver
    ```bash
    docker run -d --name revolveroo -p 80:80 -v revolveroo-data:/data \
      -e PROXY_DOMAIN=revolveroo.media.server \
-     ghcr.io/damianpokorski/revolveroo-draft:latest
+     ghcr.io/damianpokorski/revolveroo:latest
    ```
 
 2. **Add a wildcard DNS record** on your router, DNS server or hosts file: `*.revolveroo.media.server` pointing at the container's address. Revolveroo does not manage this. It is ordinary LAN DNS, like pointing any other hostname at the container.
@@ -75,7 +75,7 @@ Cookie and `localStorage` rows work through a small page Revolveroo serves at `/
 - A `localStorage` value is overwritten on every load, so changing that setting inside the service only lasts until the frame reloads.
 - Header values can use Caddy placeholders. For example, `{env.HA_TOKEN}` is replaced with that environment variable of the container.
 
-Values are stored as plaintext in the data file and anyone who can reach the API can read them. See the [security model](/revolveroo-draft/reference/security/).
+Values are stored as plaintext in the data file and anyone who can reach the API can read them. See the [security model](/revolveroo/reference/security/).
 
 ## Limits
 
@@ -84,4 +84,4 @@ Values are stored as plaintext in the data file and anyone who can reach the API
 
 ## What you get in return
 
-Proxied tabs are locked down more than a plain iframe: unguessable, persisted subdomains, a framing allowlist, no direct browsing, and leak-resistant headers. The details are in the [security model](/revolveroo-draft/reference/security/).
+Proxied tabs are locked down more than a plain iframe: unguessable, persisted subdomains, a framing allowlist, no direct browsing, and leak-resistant headers. The details are in the [security model](/revolveroo/reference/security/).

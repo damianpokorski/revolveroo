@@ -79,7 +79,7 @@ revolver/
 
 Playwright specs live in `apps/web/e2e/`, covering the flows that would be costly to break silently: tab CRUD, conditions, kiosk autoplay rotation, and playback controls.
 
-**Additional prerequisite: a local `caddy` (v2.x) binary on `PATH`.** The e2e server process spawns Caddy for its optional per-tab reverse-proxy feature — always, not just for `proxy.spec.ts` (see `apps/web/playwright.config.ts`'s `PROXY_DOMAIN`/`PROXY_PORT`/`PROXY_APP_ORIGINS` env). Everyday `bun run dev` does **not** need this — Caddy is only ever spawned in dev/e2e when `PROXY_DOMAIN` is set.
+**Additional prerequisite: `caddy` on `PATH`**, pinned via `mise.toml` (run `mise install` after cloning if it isn't already active). The e2e server process spawns Caddy for its optional per-tab reverse-proxy feature — always, not just for `proxy.spec.ts` (see `apps/web/playwright.config.ts`'s `PROXY_DOMAIN`/`PROXY_PORT`/`PROXY_APP_ORIGINS` env). Everyday `bun run dev` does **not** need this — Caddy is only ever spawned in dev/e2e when `PROXY_DOMAIN` is set. CI installs its own Caddy via `apt` rather than mise (see `ci.yml`) — update both if the pinned version changes.
 
 ```bash
 # One-time: download the Chromium browser
@@ -109,7 +109,7 @@ Review the regenerated PNGs, `git add` them, and commit again. Only commit Linux
 
 ## Docs site
 
-User-facing guides live in `.articles/` as plain markdown and are built into a static site by `apps/docs` (Astro + Starlight). `.github/workflows/docs.yml` deploys it to GitHub Pages at <https://damianpokorski.github.io/revolveroo-draft/> whenever `.articles/` or `apps/docs/` change on `main`. `.articles/README.md` covers page frontmatter, linking under the base path, and screenshots.
+User-facing guides live in `.articles/` as plain markdown and are built into a static site by `apps/docs` (Astro + Starlight). `.github/workflows/docs.yml` deploys it to GitHub Pages at <https://damianpokorski.github.io/revolveroo/> whenever `.articles/` or `apps/docs/` change on `main`. `.articles/README.md` covers page frontmatter, linking under the base path, and screenshots.
 
 The docs scripts are named `docs:*` rather than `dev`/`build` so the recursive `bun run dev`/`bun run build` (and the Docker build) skip them.
 

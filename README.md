@@ -35,19 +35,19 @@ Revolveroo is built for a **house full of screens**, not just one: a single orde
 Versioned images are published to GHCR on every release, so there is no build step:
 
 ```bash
-docker run -d --name revolveroo -p 80:80 -v revolveroo-data:/data ghcr.io/damianpokorski/revolveroo-draft:latest
+docker run -d --name revolveroo -p 80:80 -v revolveroo-data:/data ghcr.io/damianpokorski/revolveroo:latest
 ```
 
 Then open `http://localhost`. A default data file is created in the `revolveroo-data` volume on first boot, seeded with example tabs to explore.
 
 ## Documentation
 
-Guides, concepts and reference live on the docs site: **<https://damianpokorski.github.io/revolveroo-draft/>**
+Guides, concepts and reference live on the docs site: **<https://damianpokorski.github.io/revolveroo/>**
 
-- [Install with Docker](https://damianpokorski.github.io/revolveroo-draft/getting-started/install/) and [set up your first kiosk](https://damianpokorski.github.io/revolveroo-draft/getting-started/first-kiosk/)
-- [HTTPS behind a reverse proxy](https://damianpokorski.github.io/revolveroo-draft/getting-started/https-reverse-proxy/)
-- [Embedding services that block iframing](https://damianpokorski.github.io/revolveroo-draft/guides/embedding-blocked-services/)
-- [Environment variables](https://damianpokorski.github.io/revolveroo-draft/reference/environment-variables/), [data file schema](https://damianpokorski.github.io/revolveroo-draft/reference/data-file-schema/) and [security model](https://damianpokorski.github.io/revolveroo-draft/reference/security/)
+- [Install with Docker](https://damianpokorski.github.io/revolveroo/getting-started/install/) and [set up your first kiosk](https://damianpokorski.github.io/revolveroo/getting-started/first-kiosk/)
+- [HTTPS behind a reverse proxy](https://damianpokorski.github.io/revolveroo/getting-started/https-reverse-proxy/)
+- [Embedding services that block iframing](https://damianpokorski.github.io/revolveroo/guides/embedding-blocked-services/)
+- [Environment variables](https://damianpokorski.github.io/revolveroo/reference/environment-variables/), [data file schema](https://damianpokorski.github.io/revolveroo/reference/data-file-schema/) and [security model](https://damianpokorski.github.io/revolveroo/reference/security/)
 
 Revolveroo's API has no login. It is meant for a trusted network, so read the security model before exposing it anywhere else.
 

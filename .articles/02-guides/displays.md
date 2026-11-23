@@ -32,6 +32,6 @@ Bookmark the join URL on the device (or scan the QR code) and that screen will a
 
 ## What a Display changes
 
-- A tab set to **Shows on: specific displays** only plays on the displays you pick. See [Tabs](/revolveroo-draft/guides/tabs/).
-- The [overview](/revolveroo-draft/guides/overview/) shows each display's online status and what it is showing now.
+- A tab set to **Shows on: specific displays** only plays on the displays you pick. See [Tabs](/revolveroo/guides/tabs/).
+- The [overview](/revolveroo/guides/overview/) shows each display's online status and what it is showing now.
 - A browser that matches no Display still plays every tab that is set to show on every display. It never plays a tab restricted to specific displays.

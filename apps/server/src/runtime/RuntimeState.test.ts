@@ -1,12 +1,22 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
 const emitMock = mock();
+const changeListeners: Array<() => void> = [];
 
 // Must run before RuntimeState is imported: it imports `dataEvents` from
 // "../events" at module scope, so the fake needs to be in place first (same
-// pattern used by YamlStore.test.ts for the same module).
+// pattern used by YamlStore.test.ts for the same module). `on` captures
+// "change" listeners (instead of no-op-ing them) so tests can simulate a
+// data change and verify startHealthProbeLoop's re-probe wiring.
 mock.module("../events", () => ({
-	dataEvents: { emit: emitMock, on() {}, off() {}, once() {} },
+	dataEvents: {
+		emit: emitMock,
+		on: (event: string, cb: () => void) => {
+			if (event === "change") changeListeners.push(cb);
+		},
+		off() {},
+		once() {},
+	},
 }));
 
 const { RuntimeState } = await import("./RuntimeState");
@@ -15,6 +25,7 @@ const originalFetch = globalThis.fetch;
 
 beforeEach(() => {
 	emitMock.mockReset();
+	changeListeners.length = 0;
 });
 
 afterEach(() => {
@@ -136,5 +147,32 @@ describe("probeAllTabs (via startHealthProbeLoop's immediate tick)", () => {
 		// Assert
 		expect(runtime.getTabHealthMap().dashboard?.status).toBe("fail");
 		expect(runtime.getTabHealthMap().dashboard?.lastGoodAt).toBeNull();
+	});
+});
+
+describe("startHealthProbeLoop change re-probe", () => {
+	test("re-probes shortly after a dataEvents 'change' instead of waiting for the next interval tick", async () => {
+		// Arrange — first probe fails, second (post-change) succeeds.
+		let calls = 0;
+		globalThis.fetch = mock(async () => {
+			calls++;
+			return new Response(null, { status: calls === 1 ? 500 : 200 });
+		}) as unknown as typeof fetch;
+		const runtime = new RuntimeState();
+		const fakeTabsRepo = {
+			findAll: async () => [{ id: "dashboard", url: "https://example.com" }],
+		} as unknown as import("../db/TabsRepository").TabsRepository;
+		runtime.startHealthProbeLoop(fakeTabsRepo, 60_000);
+		await new Promise((resolve) => setTimeout(resolve, 10));
+		expect(runtime.getTabHealthMap().dashboard?.status).toBe("fail");
+
+		// Act — simulate a tab/config change (e.g. a Settings edit) and let the
+		// debounce elapse, well short of the 60s interval.
+		for (const cb of changeListeners) cb();
+		await new Promise((resolve) => setTimeout(resolve, 520));
+		runtime.stopHealthProbeLoop();
+
+		// Assert
+		expect(runtime.getTabHealthMap().dashboard?.status).toBe("ok");
 	});
 });

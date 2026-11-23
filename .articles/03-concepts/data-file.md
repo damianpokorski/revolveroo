@@ -20,7 +20,7 @@ You can edit the file while the app is running.
 - **Bad entries are skipped.** If a hand-edit leaves one entry invalid, such as a typo or a missing field, that entry is skipped or falls back to its last good value. The rest of the file still loads.
 - **Writes are atomic.** The app writes to a temporary file and renames it, so a crash mid-save cannot leave a half-written file.
 
-See the [data file schema](/revolveroo-draft/reference/data-file-schema/) for every field.
+See the [data file schema](/revolveroo/reference/data-file-schema/) for every field.
 
 ## Upgrading an old file
 

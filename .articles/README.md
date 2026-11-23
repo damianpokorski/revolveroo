@@ -1,6 +1,6 @@
 # Docs source
 
-The markdown in this folder is the source of the [Revolveroo docs site](https://damianpokorski.github.io/revolveroo-draft/), built with Astro and Starlight from `apps/docs`. It stays plain markdown so it reads fine on GitHub and isn't tied to Astro. `apps/docs/src/content/docs` is a symlink to this folder, because Starlight hardcodes that path.
+The markdown in this folder is the source of the [Revolveroo docs site](https://damianpokorski.github.io/revolveroo/), built with Astro and Starlight from `apps/docs`. It stays plain markdown so it reads fine on GitHub and isn't tied to Astro. `apps/docs/src/content/docs` is a symlink to this folder, because Starlight hardcodes that path.
 
 This file is not published. Only `index.md` and files inside the numbered folders are.
 
@@ -34,13 +34,13 @@ sidebar:
 
 ## Links
 
-The site is served under a base path (`/revolveroo-draft`), and Markdown links are not prefixed automatically. Write internal links with the base included:
+The site is served under a base path (`/revolveroo`), and Markdown links are not prefixed automatically. Write internal links with the base included:
 
 ```md
-[Displays](/revolveroo-draft/guides/displays/)
+[Displays](/revolveroo/guides/displays/)
 ```
 
-If the base changes (custom domain, repo rename), update `base` in `apps/docs/astro.config.mjs` and find-and-replace `/revolveroo-draft/` here.
+If the base changes (custom domain, repo rename), update `base` in `apps/docs/astro.config.mjs` and find-and-replace `/revolveroo/` here.
 
 ## Screenshots
 

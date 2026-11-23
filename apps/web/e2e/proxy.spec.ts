@@ -9,7 +9,10 @@ import { createTab, deleteTab } from "./api";
 // PROXY_PORT=8080 and PROXY_APP_ORIGINS=http://localhost:5173 for the e2e server.
 
 const API = "http://localhost:3000/api";
-const FRAME_URL = /^http:\/\/[0-9a-f]{24}\.localtest\.me:8080$/;
+// ProxyFramesService appends the tab's own path+query onto the opaque origin
+// (see CaddyProxyService.ts's upstream comment) — assert the label/domain/port
+// shape only, not the trailing path, which varies per tab.
+const FRAME_URL = /^http:\/\/[0-9a-f]{24}\.localtest\.me:8080(\/.*)?$/;
 
 async function frameUrlFor(request: APIRequestContext, tabId: string): Promise<string> {
   const res = await request.get(`${API}/proxy/frames`);

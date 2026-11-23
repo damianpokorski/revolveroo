@@ -22,12 +22,23 @@ export default defineConfig({
   fullyParallel: false,
   retries: 0,
   reporter: "list",
+  // The default 5s (assertions) / 30s (whole test, which also bounds plain actions
+  // like `.click()`) is tight for the first minute or so of a run: the dev server
+  // is still finishing its own async startup (Caddy's spawn+retry loop, Vite lazily
+  // compiling each route's module graph on first request) while CI's shared runner
+  // is also fresh off installing Chromium/apt packages. Specs that land in that
+  // window (by sheer alphabetical bad luck, not any fault of their own) can see a
+  // plain `page.goto("/")` take longer than 5s to first-paint, or a click stall past
+  // 30s, on a loaded CI box — give real margin for that.
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
   // Points every seeded tab at the local fixture server instead of a live
   // network host — see global-setup.ts.
   globalSetup: "./e2e/global-setup.ts",
   use: {
     baseURL: "http://localhost:5173",
     trace: "retain-on-failure",
+    screenshot: "only-on-failure",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [

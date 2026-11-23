@@ -34,12 +34,14 @@ export interface DisplayRuntime {
 const SLOW_THRESHOLD_MS = 3000;
 const PROBE_TIMEOUT_MS = 5000;
 const DEFAULT_HEARTBEAT_DEBOUNCE_MS = 2000;
+const CHANGE_PROBE_DEBOUNCE_MS = 500;
 
 export class RuntimeState {
 	private tabHealth = new Map<string, TabHealth>();
 	private displayRuntime = new Map<string, DisplayRuntime>();
 	private lastHeartbeatEmit = new Map<string, number>();
 	private probeTimer: ReturnType<typeof setInterval> | undefined;
+	private changeProbeTimer: ReturnType<typeof setTimeout> | undefined;
 
 	constructor(
 		private readonly heartbeatDebounceMs = DEFAULT_HEARTBEAT_DEBOUNCE_MS,
@@ -90,11 +92,22 @@ export class RuntimeState {
 		};
 		tick();
 		this.probeTimer = setInterval(tick, intervalMs);
+		// A tab's URL can change between ticks (a Settings edit, or a hand-edit to
+		// the YAML file) and would otherwise keep showing whatever health status
+		// the *old* URL last had for up to `intervalMs`. Re-probe shortly after a
+		// change settles rather than waiting out the rest of the interval —
+		// debounced so a burst of edits triggers one re-probe, not one per edit.
+		dataEvents.on("change", () => {
+			clearTimeout(this.changeProbeTimer);
+			this.changeProbeTimer = setTimeout(tick, CHANGE_PROBE_DEBOUNCE_MS);
+		});
 	}
 
 	stopHealthProbeLoop(): void {
 		if (this.probeTimer) clearInterval(this.probeTimer);
 		this.probeTimer = undefined;
+		clearTimeout(this.changeProbeTimer);
+		this.changeProbeTimer = undefined;
 	}
 
 	private async probeAllTabs(tabsRepo: TabsRepository): Promise<void> {

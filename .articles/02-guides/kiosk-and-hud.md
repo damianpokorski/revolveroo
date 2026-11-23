@@ -37,15 +37,15 @@ By default the HUD picks a form automatically. You can force either one in **Set
 
 These live under **Playback** in **Settings** and save automatically.
 
-| Setting      | Options                                                       |
-| ------------ | ------------------------------------------------------------- |
-| Interval     | 1 to 20 seconds, per tab overridable                          |
-| Autoplay     | On or off                                                     |
-| Transition   | None, cross-fade, slide                                       |
-| HUD mode     | Auto, slimline, expanded                                      |
-| HUD size     | Small, medium, large                                          |
-| Theme        | One of twelve, see [Themes](/revolveroo-draft/guides/themes/) |
-| Daily reload | Off, or a full page reload every day at a set time            |
+| Setting      | Options                                                 |
+| ------------ | ------------------------------------------------------- |
+| Interval     | 1 to 20 seconds, per tab overridable                    |
+| Autoplay     | On or off                                               |
+| Transition   | None, cross-fade, slide                                 |
+| HUD mode     | Auto, slimline, expanded                                |
+| HUD size     | Small, medium, large                                    |
+| Theme        | One of twelve, see [Themes](/revolveroo/guides/themes/) |
+| Daily reload | Off, or a full page reload every day at a set time      |
 
 ## Phone-sized screens
 
@@ -63,4 +63,4 @@ If live updates drop briefly, a banner says the kiosk is trying to reconnect, an
 
 ## When a tab fails
 
-A tab whose URL is failing is skipped automatically instead of showing a blank frame. See [Health-aware autoplay](/revolveroo-draft/concepts/health-aware-autoplay/).
+A tab whose URL is failing is skipped automatically instead of showing a blank frame. See [Health-aware autoplay](/revolveroo/concepts/health-aware-autoplay/).

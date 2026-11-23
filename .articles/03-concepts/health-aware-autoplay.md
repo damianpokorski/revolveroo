@@ -22,11 +22,11 @@ Once the tab responds again it rejoins the rotation.
 
 ## Failing tabs on the overview
 
-A blank frame is also listed under "Needs a look" on the [overview](/revolveroo-draft/guides/overview/), so you can find broken tabs without walking to the screen.
+A blank frame is also listed under "Needs a look" on the [overview](/revolveroo/guides/overview/), so you can find broken tabs without walking to the screen.
 
 ## Common causes
 
-The usual causes are a service that is down, a wrong URL, and a service that refuses to be framed. For the last one, see [Embedding services that block iframing](/revolveroo-draft/guides/embedding-blocked-services/).
+The usual causes are a service that is down, a wrong URL, and a service that refuses to be framed. For the last one, see [Embedding services that block iframing](/revolveroo/guides/embedding-blocked-services/).
 
 ## Displays and online status
 
