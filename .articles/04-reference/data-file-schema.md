@@ -15,6 +15,7 @@ config:
   tabTransition: crossfade
   kioskControls: auto
   kioskControlsSize: s
+  dailyReloadTime: null
 
 displays:
   office:
@@ -40,6 +41,7 @@ tabs:
       - windowId: weekdays-9-5
         days: [1, 2, 3, 4, 5]
     customDuration: null
+    refreshInterval: null
     icon: null
     useProxy: false
 ```
@@ -48,14 +50,15 @@ Every field has a default, so you can leave out anything you do not need.
 
 ## `config`
 
-| Field               | Type             | Default     | Notes                                                                                                                                                     |
-| ------------------- | ---------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `playbackInterval`  | positive integer | `5000`      | Milliseconds per tab. The UI slider covers 1 to 20 seconds.                                                                                               |
-| `autoplayEnabled`   | boolean          | `true`      |                                                                                                                                                           |
-| `theme`             | enum             | `mocha`     | `mocha`, `macchiato`, `frappe`, `latte`, `rose-pine`, `rose-pine-dawn`, `tokyo-night`, `tokyo-night-day`, `kanagawa`, `kanagawa-lotus`, `nord`, `dracula` |
-| `tabTransition`     | enum             | `crossfade` | `none`, `crossfade`, `slide`                                                                                                                              |
-| `kioskControls`     | enum             | `auto`      | `auto`, `slim`, `expanded`                                                                                                                                |
-| `kioskControlsSize` | enum             | `s`         | `s`, `m`, `l`                                                                                                                                             |
+| Field               | Type               | Default     | Notes                                                                                                                                                     |
+| ------------------- | ------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `playbackInterval`  | positive integer   | `5000`      | Milliseconds per tab. The UI slider covers 1 to 20 seconds.                                                                                               |
+| `autoplayEnabled`   | boolean            | `true`      |                                                                                                                                                           |
+| `theme`             | enum               | `mocha`     | `mocha`, `macchiato`, `frappe`, `latte`, `rose-pine`, `rose-pine-dawn`, `tokyo-night`, `tokyo-night-day`, `kanagawa`, `kanagawa-lotus`, `nord`, `dracula` |
+| `tabTransition`     | enum               | `crossfade` | `none`, `crossfade`, `slide`                                                                                                                              |
+| `kioskControls`     | enum               | `auto`      | `auto`, `slim`, `expanded`                                                                                                                                |
+| `kioskControlsSize` | enum               | `s`         | `s`, `m`, `l`                                                                                                                                             |
+| `dailyReloadTime`   | `HH:MM`, or `null` | `null`      | 24-hour, the kiosk's local clock. Every kiosk does a full page reload at this time, skipped if the server is unreachable then.                            |
 
 ## `displays`
 
@@ -76,18 +79,19 @@ Every field has a default, so you can leave out anything you do not need.
 
 ## `tabs`
 
-| Field            | Type                                    | Default | Notes                                                                            |
-| ---------------- | --------------------------------------- | ------- | -------------------------------------------------------------------------------- |
-| `title`          | non-empty string                        |         |                                                                                  |
-| `url`            | non-empty string                        |         |                                                                                  |
-| `inLoop`         | boolean                                 | `true`  | `false` is HUD only.                                                             |
-| `displays`       | list of display ids, or `null`          | `null`  | `null` or an empty list means every display.                                     |
-| `windows`        | list of `{ windowId, days }`, or `null` | `null`  | `null` or an empty list means any time.                                          |
-| `windows[].days` | list of integers 0 to 6                 | `[]`    | 0 is Sunday. An empty list means every day.                                      |
-| `customDuration` | positive integer, or `null`             | `null`  | Milliseconds. Overrides `playbackInterval` for this tab.                         |
-| `icon`           | string, or `null`                       | `null`  | A Nerd Font glyph or emoji.                                                      |
-| `useProxy`       | boolean                                 | `false` | Route through the [proxy](/revolveroo-draft/guides/embedding-blocked-services/). |
-| `inject`         | list of `{ kind, key, value }`          | `[]`    | Values injected while the tab is proxied. See below.                             |
+| Field             | Type                                    | Default | Notes                                                                            |
+| ----------------- | --------------------------------------- | ------- | -------------------------------------------------------------------------------- |
+| `title`           | non-empty string                        |         |                                                                                  |
+| `url`             | non-empty string                        |         |                                                                                  |
+| `inLoop`          | boolean                                 | `true`  | `false` is HUD only.                                                             |
+| `displays`        | list of display ids, or `null`          | `null`  | `null` or an empty list means every display.                                     |
+| `windows`         | list of `{ windowId, days }`, or `null` | `null`  | `null` or an empty list means any time.                                          |
+| `windows[].days`  | list of integers 0 to 6                 | `[]`    | 0 is Sunday. An empty list means every day.                                      |
+| `customDuration`  | positive integer, or `null`             | `null`  | Milliseconds. Overrides `playbackInterval` for this tab.                         |
+| `refreshInterval` | integer of at least `60000`, or `null`  | `null`  | Milliseconds between background reloads of this tab. `null` never refreshes.     |
+| `icon`            | string, or `null`                       | `null`  | A Nerd Font glyph or emoji.                                                      |
+| `useProxy`        | boolean                                 | `false` | Route through the [proxy](/revolveroo-draft/guides/embedding-blocked-services/). |
+| `inject`          | list of `{ kind, key, value }`          | `[]`    | Values injected while the tab is proxied. See below.                             |
 
 ### `tabs.*.inject`
 

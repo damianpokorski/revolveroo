@@ -14,6 +14,7 @@ export interface TabBody {
   displays?: string[] | null;
   windows?: TabWindow[] | null;
   customDuration?: number | null;
+  refreshInterval?: number | null;
   icon?: string | null;
   useProxy?: boolean;
   inject?: Injection[];
@@ -45,6 +46,7 @@ export class TabsService {
       displays: null,
       windows: null,
       customDuration: null,
+      refreshInterval: null,
       icon: null,
       useProxy: false,
       inject: [],

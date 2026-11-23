@@ -10,6 +10,7 @@ import {
 } from "$lib/api";
 import Icon from "$lib/icons/Icon.svelte";
 import { iframeSrc, NO_PROXY_FRAMES, type ProxyFrames } from "$lib/proxy";
+import { nextDailyOccurrence, safeReload } from "$lib/reload";
 import { DEFAULT_TAB_TRANSITION, type TabTransition } from "$lib/tabTransition";
 import { applyTheme } from "$lib/theme";
 import { pushToast } from "$lib/toast.svelte";
@@ -25,6 +26,9 @@ const FAILURE_SKIP_COUNTDOWN_S = 3;
 const AUTO_HUD_TAB_THRESHOLD = 4;
 const SLIMLINE_COLLAPSE_MS = 8000;
 const POLL_INTERVAL_MS = 30_000;
+const OUTAGE_PROBE_MS = 10_000;
+const TAB_REFRESH_CHECK_MS = 15_000;
+const DAILY_RELOAD_CHECK_MS = 30_000;
 
 // --- Data ---
 let allTabsCount = $state(0);
@@ -43,6 +47,7 @@ let autoplayEnabled = $state(true);
 let tabTransition = $state<TabTransition>(DEFAULT_TAB_TRANSITION);
 let kioskControls = $state<"auto" | "slim" | "expanded">("auto");
 let kioskControlsSize = $state<"s" | "m" | "l">("s");
+let dailyReloadTime = $state<string | null>(null);
 
 async function refreshData() {
 	const [
@@ -94,6 +99,7 @@ async function refreshData() {
 		tabTransition = configResult.data.tabTransition;
 		kioskControls = configResult.data.kioskControls;
 		kioskControlsSize = configResult.data.kioskControlsSize;
+		dailyReloadTime = configResult.data.dailyReloadTime;
 	}
 }
 onMount(refreshData);
@@ -119,7 +125,10 @@ onMount(() => {
 		const recovered = sseDisconnectedAt !== null;
 		sseConnected = true;
 		sseDisconnectedAt = null;
-		// A reconnect after an outage may mean the server restarted, which
+		// Back from a full outage: the server may have been redeployed, so start
+		// over from a clean page rather than patching up this one.
+		if (outage) return void safeReload();
+		// A reconnect after a short drop may still mean the server restarted, which
 		// re-rolls every proxied tab's subdomain — resync so the frames swap
 		// onto the new URLs (nothing else refetches on a bare reconnect).
 		if (recovered) void refreshData();
@@ -314,12 +323,20 @@ let frameStateByTab = $state<Record<string, "ok" | "error" | "timeout">>({});
 // the screen never goes blank. The frame it replaces lingers briefly underneath as
 // "retiring" so the swap can't flash.
 type FrameRole = "live" | "pending" | "retiring";
+// `gen` is the slot's identity: unique per mounted iframe, so the same src can be
+// loaded again as a fresh "pending" copy (a periodic tab refresh) alongside the
+// live one.
 interface FrameSlot {
 	src: string;
 	role: FrameRole;
 	swappedIn: boolean;
+	gen: number;
 }
 const SWAP_RETIRE_MS = 700;
+let frameGen = 0;
+// When each tab's live frame was last (re)loaded or a refresh was last
+// attempted — drives the per-tab refreshInterval timer.
+const refreshedAt = new Map<string, number>();
 let frameSlots = $state<Record<string, FrameSlot[]>>({});
 // A pending preload that errored or timed out for this src; cleared on every resync.
 let failedSrc = $state<Record<string, string>>({});
@@ -345,14 +362,17 @@ $effect(() => {
 			}
 			const live = slots.find((s) => s.role === "live");
 			if (!live) {
-				next[id] = [{ src, role: "live", swappedIn: false }];
+				next[id] = [{ src, role: "live", swappedIn: false, gen: ++frameGen }];
 				changed = true;
 				continue;
 			}
 			const withoutPending = slots.filter((s) => s.role !== "pending");
 			if (live.src === src) {
-				next[id] = withoutPending;
-				if (withoutPending.length !== slots.length) changed = true;
+				// A pending copy of the live src is a periodic refresh in flight;
+				// only drop pendings for some other (now stale) src.
+				const kept = slots.filter((s) => s.role !== "pending" || s.src === src);
+				next[id] = kept;
+				if (kept.length !== slots.length) changed = true;
 				continue;
 			}
 			if (
@@ -364,7 +384,7 @@ $effect(() => {
 			}
 			next[id] = [
 				...withoutPending.filter((s) => s.src !== src),
-				{ src, role: "pending", swappedIn: false },
+				{ src, role: "pending", swappedIn: false, gen: ++frameGen },
 			];
 			changed = true;
 		}
@@ -374,14 +394,19 @@ $effect(() => {
 	});
 });
 
-function promoteFrame(tabId: string, src: string) {
+function promoteFrame(tabId: string, gen: number) {
 	const slots = frameSlots[tabId] ?? [];
-	if (!slots.some((s) => s.role === "pending" && s.src === src)) return;
+	const pending = slots.find((s) => s.role === "pending" && s.gen === gen);
+	if (!pending) return;
 	const retiring = slots
 		.filter((s) => s.role === "live")
 		.map((s) => ({ ...s, role: "retiring" as const }));
-	frameSlots[tabId] = [...retiring, { src, role: "live", swappedIn: true }];
+	frameSlots[tabId] = [
+		...retiring,
+		{ ...pending, role: "live", swappedIn: true },
+	];
 	frameStateByTab[tabId] = "ok";
+	refreshedAt.set(tabId, Date.now());
 	clearTimeout(retireTimers.get(tabId));
 	retireTimers.set(
 		tabId,
@@ -396,10 +421,15 @@ function promoteFrame(tabId: string, src: string) {
 	if (tabs[activeTabIndex]?.id === tabId) sendHeartbeat();
 }
 
-function failPending(tabId: string, src: string) {
-	failedSrc[tabId] = src;
-	frameSlots[tabId] = (frameSlots[tabId] ?? []).filter(
-		(s) => !(s.role === "pending" && s.src === src),
+function failPending(tabId: string, src: string, gen: number) {
+	const slots = frameSlots[tabId] ?? [];
+	// A failed refresh of the live src just keeps the live frame up and tries
+	// again next interval; only a failed swap to a new src is remembered.
+	if (!slots.some((s) => s.role === "live" && s.src === src)) {
+		failedSrc[tabId] = src;
+	}
+	frameSlots[tabId] = slots.filter(
+		(s) => !(s.role === "pending" && s.gen === gen),
 	);
 }
 
@@ -409,18 +439,19 @@ onDestroy(() => {
 
 function trackFrame(
 	node: HTMLIFrameElement,
-	{ tabId, src }: { tabId: string; src: string },
+	{ tabId, src, gen }: { tabId: string; src: string; gen: number },
 ) {
 	let settled = false;
 	// A preloading frame must never touch its tab's health state: the tab is still
 	// showing (and being judged by) its live frame.
 	const isPending = () =>
-		frameSlots[tabId]?.some((s) => s.src === src && s.role === "pending") ??
+		frameSlots[tabId]?.some((s) => s.gen === gen && s.role === "pending") ??
 		false;
+	if (!isPending()) refreshedAt.set(tabId, Date.now());
 	const timeout = setTimeout(() => {
 		if (settled) return;
 		settled = true;
-		if (isPending()) return failPending(tabId, src);
+		if (isPending()) return failPending(tabId, src, gen);
 		frameStateByTab[tabId] = "timeout";
 		if (tabs[activeTabIndex]?.id === tabId) sendHeartbeat();
 	}, PAINT_TIMEOUT_MS);
@@ -428,7 +459,7 @@ function trackFrame(
 		if (settled) return;
 		settled = true;
 		clearTimeout(timeout);
-		if (isPending()) return promoteFrame(tabId, src);
+		if (isPending()) return promoteFrame(tabId, gen);
 		frameStateByTab[tabId] = "ok";
 		if (tabs[activeTabIndex]?.id === tabId) sendHeartbeat();
 	};
@@ -436,7 +467,7 @@ function trackFrame(
 		if (settled) return;
 		settled = true;
 		clearTimeout(timeout);
-		if (isPending()) return failPending(tabId, src);
+		if (isPending()) return failPending(tabId, src, gen);
 		frameStateByTab[tabId] = "error";
 		if (tabs[activeTabIndex]?.id === tabId) sendHeartbeat();
 	};
@@ -457,6 +488,54 @@ function reloadActiveTab() {
 	reloadNonce[activeTab.id] = (reloadNonce[activeTab.id] ?? 0) + 1;
 	frameStateByTab[activeTab.id] = "timeout";
 }
+
+// Periodic per-tab refresh: load a fresh copy of the live src as a hidden
+// "pending" frame; the swap machinery above promotes it once it has loaded, so
+// the screen never blanks and a failed reload leaves the old frame up.
+let tabRefreshTimer: ReturnType<typeof setInterval>;
+onMount(() => {
+	tabRefreshTimer = setInterval(() => {
+		const now = Date.now();
+		for (const tab of tabs) {
+			if (!tab.refreshInterval) continue;
+			const slots = frameSlots[tab.id] ?? [];
+			const live = slots.find((s) => s.role === "live");
+			if (!live || slots.some((s) => s.role === "pending")) continue;
+			const last = refreshedAt.get(tab.id);
+			if (last === undefined || now - last < tab.refreshInterval) continue;
+			refreshedAt.set(tab.id, now);
+			frameSlots[tab.id] = [
+				...slots,
+				{ src: live.src, role: "pending", swappedIn: false, gen: ++frameGen },
+			];
+		}
+	}, TAB_REFRESH_CHECK_MS);
+});
+onDestroy(() => clearInterval(tabRefreshTimer));
+
+// Daily full reload at config.dailyReloadTime (kiosk's local clock). Polled
+// rather than one long setTimeout so sleep/clock changes can't make it drift.
+// safeReload() probes first, so a down server just skips today — the outage
+// reload below covers the comeback.
+let nextDailyReloadAt: number | null = null;
+$effect(() => {
+	nextDailyReloadAt = dailyReloadTime
+		? nextDailyOccurrence(dailyReloadTime, new Date()).getTime()
+		: null;
+});
+let dailyReloadTimer: ReturnType<typeof setInterval>;
+onMount(() => {
+	dailyReloadTimer = setInterval(() => {
+		if (nextDailyReloadAt === null || Date.now() < nextDailyReloadAt) return;
+		if (!dailyReloadTime) return;
+		nextDailyReloadAt = nextDailyOccurrence(
+			dailyReloadTime,
+			new Date(),
+		).getTime();
+		void safeReload();
+	}, DAILY_RELOAD_CHECK_MS);
+});
+onDestroy(() => clearInterval(dailyReloadTimer));
 
 // --- Heartbeat (spec section 9 — per-display SSE feeds Overview only) ---
 let heartbeatTimer: ReturnType<typeof setInterval>;
@@ -507,6 +586,7 @@ function registerFetchFailure() {
 function registerFetchSuccess() {
 	consecutiveFetchFailures = 0;
 	lastSuccessfulRefreshAt = Date.now();
+	if (outage) void safeReload();
 }
 let bannerTick = $state(Date.now());
 let bannerTimer: ReturnType<typeof setInterval>;
@@ -516,7 +596,7 @@ onMount(() => {
 	}, 3000);
 });
 const bannerState = $derived.by(
-	(): "live-updates-dropped" | "server-unreachable" | "config-stale" | null => {
+	(): "live-updates-dropped" | "server-unreachable" | null => {
 		if (
 			consecutiveFetchFailures >= 3 ||
 			bannerTick - lastSuccessfulRefreshAt > 60_000
@@ -526,17 +606,28 @@ const bannerState = $derived.by(
 		if (sseDisconnectedAt !== null && bannerTick - sseDisconnectedAt > 15_000) {
 			return "live-updates-dropped";
 		}
-		if (bannerTick - lastSuccessfulRefreshAt > 5 * 60_000) {
-			return "config-stale";
-		}
 		return null;
 	},
 );
 const BANNER_COPY: Record<string, string> = {
 	"live-updates-dropped": "Live updates dropped — trying to reconnect",
 	"server-unreachable": "Server unreachable — showing the last known state",
-	"config-stale": "Configuration may be stale",
 };
+
+// Once the server has been fully unreachable, the first sign it's back (a probe
+// below, a successful fetch, or the SSE stream reopening) triggers a full page
+// reload — it may have been redeployed with a new SPA build, and a fresh page is
+// the cheapest way to shed whatever state the outage left behind. Latched
+// because a successful refetch clears bannerState before we'd see the recovery.
+let outage = $state(false);
+$effect(() => {
+	if (bannerState === "server-unreachable") outage = true;
+});
+$effect(() => {
+	if (!outage) return;
+	const timer = setInterval(() => void safeReload(), OUTAGE_PROBE_MS);
+	return () => clearInterval(timer);
+});
 </script>
 
 <div class="wrapper" data-transition={tabTransition}>
@@ -576,7 +667,7 @@ const BANNER_COPY: Record<string, string> = {
 		<!-- Iframes: all rendered, inactive ones pushed behind -->
 		{#each tabs as tab, i (tab.id)}
 			{#key reloadNonce[tab.id] ?? 0}
-				{#each frameSlots[tab.id] ?? [] as slot (slot.src)}
+				{#each frameSlots[tab.id] ?? [] as slot (slot.gen)}
 					<iframe
 						title={tab.title}
 						src={slot.src}
@@ -589,7 +680,7 @@ const BANNER_COPY: Record<string, string> = {
 						data-testid="kiosk-iframe"
 						data-tab-id={tab.id}
 						data-frame-role={slot.role}
-						use:trackFrame={{ tabId: tab.id, src: slot.src }}
+						use:trackFrame={{ tabId: tab.id, src: slot.src, gen: slot.gen }}
 					></iframe>
 				{/each}
 			{/key}
@@ -722,10 +813,6 @@ const BANNER_COPY: Record<string, string> = {
 	.banner-server-unreachable {
 		background: var(--rv-fail-tint);
 		color: var(--rv-fail-text);
-	}
-	.banner-config-stale {
-		background: var(--rv-raised);
-		color: var(--rv-text-muted);
 	}
 
 	.empty-state {

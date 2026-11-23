@@ -28,6 +28,12 @@ Each tab can carry an icon, chosen from a searchable picker of Nerd Font glyphs 
 
 Tick **Custom playback duration** to override the global interval for one tab. Handy for a long chart that needs more time than a status tile.
 
+## Refresh periodically
+
+Tick **Refresh periodically** and pick an interval, from 1 minute to 4 hours, to reload a tab on a timer. Use it for dashboards that go stale or slow down when left open for days.
+
+The refresh happens in the background: a fresh copy of the page loads out of sight and replaces the old one only once it has finished loading, so the screen never goes blank. If the reload fails, the old copy stays up and the next interval tries again. Tabs refresh whether or not they are currently on screen.
+
 ## Shows on and When
 
 The **Shows on** and **When** block decides where and when a tab plays.

@@ -44,6 +44,7 @@ const sampleTab = {
   displays: null,
   windows: null,
   customDuration: null,
+  refreshInterval: null,
   icon: null,
   useProxy: false,
   inject: [],
@@ -164,6 +165,28 @@ describe("POST /tabs", () => {
     // Assert
     expect(response.status).toBe(400);
     expect(body).toEqual({ message: 'Unknown display id "bogus"' });
+  });
+
+  test("rejects a refreshInterval below one minute", async () => {
+    // Arrange
+    const requestBody = {
+      url: "https://example.com",
+      title: "Example",
+      refreshInterval: 5000,
+    };
+
+    // Act
+    const response = await tabsController.handle(
+      new Request("http://localhost/tabs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      }),
+    );
+
+    // Assert
+    expect(response.status).toBe(422);
+    expect(createMock).not.toHaveBeenCalled();
   });
 
   test("passes a non-null icon through to the service", async () => {

@@ -64,6 +64,7 @@ export const TabEntrySchema = z.object({
   displays: z.array(z.string()).nullable().default(null),
   windows: z.array(TabWindowSchema).nullable().default(null),
   customDuration: z.number().int().positive().nullable().default(null),
+  refreshInterval: z.number().int().min(60_000).nullable().default(null),
   icon: z.string().nullable().default(null),
   useProxy: z.boolean().default(false),
   inject: z.array(InjectionSchema).default([]),
@@ -76,4 +77,5 @@ export const ConfigSchema = z.object({
   tabTransition: z.enum(TAB_TRANSITIONS).default("crossfade"),
   kioskControls: z.enum(KIOSK_CONTROLS).default("auto"),
   kioskControlsSize: z.enum(KIOSK_CONTROLS_SIZES).default("s"),
+  dailyReloadTime: z.string().regex(TIME_PATTERN).nullable().default(null),
 });

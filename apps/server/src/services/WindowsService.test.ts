@@ -132,6 +132,7 @@ describe("delete", () => {
       displays: null,
       windows: [{ windowId: "business-hours", days: [] }],
       customDuration: null,
+      refreshInterval: null,
       icon: null,
       useProxy: false,
       inject: [],

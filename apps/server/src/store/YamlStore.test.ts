@@ -35,6 +35,7 @@ const sampleTabData = {
   displays: null,
   windows: null,
   customDuration: null,
+  refreshInterval: null,
   icon: null,
   useProxy: false,
   inject: [],
@@ -72,6 +73,7 @@ describe("load", () => {
       tabTransition: "crossfade",
       kioskControls: "auto",
       kioskControlsSize: "s",
+      dailyReloadTime: null,
     });
     const written = await readFile(filePath, "utf8");
     expect(written).toContain("dashboard");
@@ -431,6 +433,31 @@ describe("external changes (watcher)", () => {
     // Assert
     expect(store.getTab("good-tab")?.url).toBe("https://example.com");
     expect(store.getTab("never-valid")).toBeUndefined();
+  });
+
+  test("keeps the previous config value when a hand-edit sets an invalid dailyReloadTime", async () => {
+    // Arrange
+    store = new YamlStore(filePath);
+    await store.load();
+    await store.updateConfig({ dailyReloadTime: "04:00" });
+    store.startWatching();
+
+    // Act
+    const edited = [
+      "config:",
+      "  playbackInterval: 7000",
+      '  dailyReloadTime: "25:99"',
+      "displays: {}",
+      "windows: {}",
+      "tabs: {}",
+      "",
+    ].join("\n");
+    await writeFile(filePath, edited, "utf8");
+    await waitFor(() => notifyDataChangedMock.mock.calls.length > 0);
+
+    // Assert
+    expect(store.getConfig().playbackInterval).toBe(7000);
+    expect(store.getConfig().dailyReloadTime).toBe("04:00");
   });
 
   test("keeps all previous state on a whole-file parse error", async () => {

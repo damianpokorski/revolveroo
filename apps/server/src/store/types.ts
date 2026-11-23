@@ -54,6 +54,9 @@ export interface Tab {
   icon: string | null;
   inLoop: boolean;
   customDuration: number | null;
+  // Milliseconds between seamless background reloads of this tab's iframe;
+  // null disables periodic refresh.
+  refreshInterval: number | null;
   displays: string[] | null;
   windows: TabWindow[] | null;
   // Route this tab's iframe through the optional Caddy reverse proxy
@@ -73,4 +76,6 @@ export interface Config {
   tabTransition: TabTransition;
   kioskControls: KioskControls;
   kioskControlsSize: KioskControlsSize;
+  // Local "HH:MM" at which every kiosk does a full page reload; null disables it.
+  dailyReloadTime: string | null;
 }

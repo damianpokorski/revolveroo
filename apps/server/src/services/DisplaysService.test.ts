@@ -89,6 +89,7 @@ describe("delete", () => {
       displays: ["office"],
       windows: null,
       customDuration: null,
+      refreshInterval: null,
       icon: null,
       useProxy: false,
       inject: [],

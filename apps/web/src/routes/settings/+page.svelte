@@ -566,6 +566,34 @@ function scheduleConfigSave() {
 							{/each}
 						</select>
 					</label>
+					<div class="daily-reload-row">
+						<label class="inline-checkbox">
+							<input
+								class="rv-checkbox"
+								type="checkbox"
+								data-testid="daily-reload-toggle"
+								checked={config.dailyReloadTime !== null}
+								onchange={(e) => {
+									if (config) config.dailyReloadTime = e.currentTarget.checked ? "04:00" : null;
+									scheduleConfigSave();
+								}}
+							/>
+							Full reload daily at
+						</label>
+						<input
+							class="rv-input daily-reload-time"
+							type="time"
+							data-testid="daily-reload-time"
+							disabled={config.dailyReloadTime === null}
+							value={config.dailyReloadTime ?? "04:00"}
+							onchange={(e) => {
+								// A cleared time input reports "" — keep the last valid time.
+								if (!config || !e.currentTarget.value) return;
+								config.dailyReloadTime = e.currentTarget.value;
+								scheduleConfigSave();
+							}}
+						/>
+					</div>
 					<div class="kiosk-controls-row">
 						<div>
 							<span class="rv-section-label">Kiosk controls</span>
@@ -809,6 +837,18 @@ function scheduleConfigSave() {
 	}
 	.swatch-tile.active .swatch-check {
 		display: flex;
+	}
+
+	.daily-reload-row {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+	.daily-reload-time {
+		width: auto;
+	}
+	.daily-reload-time:disabled {
+		opacity: 0.5;
 	}
 
 	.kiosk-controls-row {

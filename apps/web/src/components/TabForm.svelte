@@ -34,6 +34,11 @@ let icon = $state<string | null>(tab?.icon ?? null);
 let inLoop = $state(tab?.inLoop ?? true);
 let customDurationEnabled = $state(tab?.customDuration != null);
 let customDuration = $state(tab?.customDuration ?? 5000);
+let refreshEnabled = $state(tab?.refreshInterval != null);
+// Edited in minutes; stored in ms like customDuration.
+let refreshMinutes = $state(
+	tab?.refreshInterval != null ? Math.round(tab.refreshInterval / 60_000) : 15,
+);
 let useProxy = $state(tab?.useProxy ?? false);
 // Deep-copied so editing a row never mutates the tab prop before Save.
 let inject = $state((tab?.inject ?? []).map((row) => ({ ...row })));
@@ -175,6 +180,7 @@ function handleSave() {
 		icon,
 		inLoop,
 		customDuration: customDurationEnabled ? customDuration : null,
+		refreshInterval: refreshEnabled ? refreshMinutes * 60_000 : null,
 		displays: showsOnMode === "every" ? null : selectedDisplays,
 		windows: whenMode === "any" ? null : tabWindows,
 		useProxy,
@@ -232,6 +238,16 @@ function handleSave() {
 		<label>
 			<span class="rv-section-label">Duration ({customDuration} ms)</span>
 			<input class="rv-range" data-testid="tab-custom-duration-range" type="range" bind:value={customDuration} min="1000" max="20000" step="500" />
+		</label>
+	{/if}
+	<label class="inline-checkbox">
+		<input class="rv-checkbox" type="checkbox" data-testid="tab-refresh-toggle" bind:checked={refreshEnabled} />
+		Refresh periodically
+	</label>
+	{#if refreshEnabled}
+		<label>
+			<span class="rv-section-label">Every {refreshMinutes} min</span>
+			<input class="rv-range" data-testid="tab-refresh-range" type="range" bind:value={refreshMinutes} min="1" max="240" step="1" />
 		</label>
 	{/if}
 	{#if proxyEnabled}

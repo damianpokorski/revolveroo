@@ -20,6 +20,7 @@ export default async function globalSetup(): Promise<void> {
       icon: string | null;
       inLoop: boolean;
       customDuration: number | null;
+      refreshInterval: number | null;
       displays: string[] | null;
       windows: { windowId: string; days: number[] }[] | null;
       useProxy: boolean;

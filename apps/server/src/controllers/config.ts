@@ -22,6 +22,7 @@ const ConfigModel = t.Object({
   tabTransition: t.Union([t.Literal("none"), t.Literal("crossfade"), t.Literal("slide")]),
   kioskControls: t.Union([t.Literal("auto"), t.Literal("slim"), t.Literal("expanded")]),
   kioskControlsSize: t.Union([t.Literal("s"), t.Literal("m"), t.Literal("l")]),
+  dailyReloadTime: t.Nullable(t.String({ pattern: "^([01]\\d|2[0-3]):[0-5]\\d$" })),
 });
 
 const service = new ConfigService(new ConfigRepository());

@@ -37,20 +37,29 @@ By default the HUD picks a form automatically. You can force either one in **Set
 
 These live under **Playback** in **Settings** and save automatically.
 
-| Setting    | Options                                                       |
-| ---------- | ------------------------------------------------------------- |
-| Interval   | 1 to 20 seconds, per tab overridable                          |
-| Autoplay   | On or off                                                     |
-| Transition | None, cross-fade, slide                                       |
-| HUD mode   | Auto, slimline, expanded                                      |
-| HUD size   | Small, medium, large                                          |
-| Theme      | One of twelve, see [Themes](/revolveroo-draft/guides/themes/) |
+| Setting      | Options                                                       |
+| ------------ | ------------------------------------------------------------- |
+| Interval     | 1 to 20 seconds, per tab overridable                          |
+| Autoplay     | On or off                                                     |
+| Transition   | None, cross-fade, slide                                       |
+| HUD mode     | Auto, slimline, expanded                                      |
+| HUD size     | Small, medium, large                                          |
+| Theme        | One of twelve, see [Themes](/revolveroo-draft/guides/themes/) |
+| Daily reload | Off, or a full page reload every day at a set time            |
 
 ## Phone-sized screens
 
 The kiosk is responsive, so a phone or small tablet works as a display too.
 
 ![The kiosk on a phone-sized screen.](../../../assets/screenshots/kiosk-mobile.png)
+
+## Daily reload
+
+Turn on **Full reload daily at** under **Playback** to give every kiosk a clean start once a day, for example at 04:00. The time is read from each kiosk's own clock. If the server can't be reached at that moment, the kiosk skips that day's reload rather than risk landing on a browser error page.
+
+## When the server goes away
+
+If live updates drop briefly, a banner says the kiosk is trying to reconnect, and it picks up where it left off once the connection is back. If the server stays unreachable for about a minute, the banner changes to say the kiosk is showing the last known state. From then on, as soon as the server answers again, the kiosk reloads the whole page so it comes back on the latest version, starting from the first tab. A kiosk waking from a long sleep may reload the same way.
 
 ## When a tab fails
 

@@ -23,6 +23,7 @@ function tab(overrides: Partial<Tab> = {}): Tab {
     icon: null,
     inLoop: true,
     customDuration: null,
+    refreshInterval: null,
     displays: null,
     windows: null,
     useProxy: true,

@@ -57,6 +57,7 @@ function tab(overrides: Partial<Tab>): Tab {
     displays: null,
     windows: null,
     customDuration: null,
+    refreshInterval: null,
     icon: null,
     useProxy: false,
     inject: [],
