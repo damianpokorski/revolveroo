@@ -5,8 +5,17 @@ template: splash
 hero:
   tagline: Point it at Grafana, Home Assistant, Netdata or Uptime Kuma and let it rotate through them full-screen, on every screen in the house.
   image:
-    file: ../../assets/screenshots/kiosk.png
-    alt: The Revolveroo kiosk showing a dashboard with the tab HUD in the bottom-right corner.
+    html: |
+      <video class="hero-video light:sl-hidden" autoplay muted loop playsinline aria-hidden="true">
+        <source src="/revolveroo/hero/kiosk-tour.webm" type="video/webm" />
+        <source src="/revolveroo/hero/kiosk-tour.mp4" type="video/mp4" />
+      </video>
+      <video class="hero-video dark:sl-hidden" autoplay muted loop playsinline aria-hidden="true">
+        <source src="/revolveroo/hero/kiosk-tour-day.webm" type="video/webm" />
+        <source src="/revolveroo/hero/kiosk-tour-day.mp4" type="video/mp4" />
+      </video>
+      <img src="/revolveroo/screenshots/kiosk.png" alt="The Revolveroo kiosk showing a dashboard with the tab HUD in the bottom-right corner." class="hero-video-fallback light:sl-hidden" />
+      <img src="/revolveroo/screenshots/kiosk-day.png" alt="The Revolveroo kiosk showing a dashboard with the tab HUD in the bottom-right corner." class="hero-video-fallback dark:sl-hidden" />
   actions:
     - text: Get started
       link: /revolveroo/getting-started/install/

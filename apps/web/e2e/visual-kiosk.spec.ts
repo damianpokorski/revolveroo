@@ -3,7 +3,10 @@ import { createTab, deleteTab, fetchTabByTitle, fetchTabsRaw, putConfig } from "
 
 test.describe("Visual — kiosk root", () => {
   test.beforeEach(async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
+    // Pinned explicitly: the friendly.html fixture now follows prefers-color-scheme (for
+    // hero-video.spec.ts's light-mode recording), so leaving this unset makes the committed
+    // baselines depend on whatever colorScheme the environment defaults to instead of a fixed one.
+    await page.emulateMedia({ reducedMotion: "reduce", colorScheme: "dark" });
   });
 
   test.afterEach(async ({ request }) => {

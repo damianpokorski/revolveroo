@@ -7,7 +7,8 @@ sidebar:
 
 A **tab** is one dashboard: a title, a URL and a set of rules for when it plays.
 
-![The settings page listing tabs with drag handles.](../../../assets/screenshots/settings-tabs.png)
+<img src="/revolveroo/screenshots/settings-tabs.png" alt="The settings page listing tabs with drag handles." class="light:sl-hidden" />
+<img src="/revolveroo/screenshots/settings-tabs-day.png" alt="The settings page listing tabs with drag handles." class="dark:sl-hidden" />
 
 ## Add and edit a tab
 
@@ -38,7 +39,8 @@ The refresh happens in the background: a fresh copy of the page loads out of sig
 
 The **Shows on** and **When** block decides where and when a tab plays.
 
-![The tab conditions block with a time window row added.](../../../assets/screenshots/tab-conditions.png)
+<img src="/revolveroo/screenshots/tab-conditions.png" alt="The tab conditions block with a time window row added." class="light:sl-hidden" />
+<img src="/revolveroo/screenshots/tab-conditions-day.png" alt="The tab conditions block with a time window row added." class="dark:sl-hidden" />
 
 - **Shows on**: leave **Every display** on, or choose specific [displays](/revolveroo/guides/displays/).
 - **When**: leave **Any time** on, or choose **Only in these windows** and add one or more [time windows](/revolveroo/guides/time-windows/).

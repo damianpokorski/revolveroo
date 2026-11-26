@@ -37,7 +37,8 @@ The proxy is designed for a trusted network. Read the [security model](/revolver
 
 4. **Turn it on per tab.** In a tab's form, tick **Route through proxy**. There is nothing else to publish, since every proxied tab shares Revolveroo's one published port.
 
-![The tab form with Route through proxy ticked.](../../../assets/screenshots/tab-proxy.png)
+<img src="/revolveroo/screenshots/tab-proxy.png" alt="The tab form with Route through proxy ticked." class="light:sl-hidden" />
+<img src="/revolveroo/screenshots/tab-proxy-day.png" alt="The tab form with Route through proxy ticked." class="dark:sl-hidden" />
 
 ## Inject headers, cookies and storage
 
@@ -81,6 +82,29 @@ Values are stored as plaintext in the data file and anyone who can reach the API
 
 - The bundled proxy is **plain HTTP only**. If Revolveroo itself is served over HTTPS by an external front proxy, embedding a plain-HTTP proxied subdomain in that page hits the browser's mixed-content block. In that setup, leave proxied tabs off, or extend the external proxy to terminate TLS for the wildcard subdomain too.
 - A proxied tab must have a valid `http` or `https` URL. The API rejects anything else.
+
+## Doing it with your own reverse proxy
+
+If a dashboard already sits behind your own Caddy — for TLS termination, auth, or anything else — you can strip its framing headers there instead of routing it through Revolveroo's bundled proxy. The directive that matters is `frame-ancestors` in the `Content-Security-Policy` response header. `X-Frame-Options: ALLOW-FROM` is deprecated and every current browser ignores it, so setting it does nothing on its own.
+
+```caddyfile
+your-dashboard.media.server {
+    reverse_proxy upstream:8080
+
+    header {
+        -X-Frame-Options
+        Content-Security-Policy "frame-ancestors http://revolveroo.media.server"
+    }
+}
+```
+
+**Scope `frame-ancestors` to the kiosk's actual origin(s)** — the hostname or IP you open Revolveroo at — rather than `*`. A wildcard lets any page on the internet frame the dashboard, which defeats the point of the header. This mirrors what Revolveroo's bundled proxy does for proxied tabs: it replaces the upstream's framing headers with an allowlist built from `PROXY_APP_ORIGINS`, never a wildcard.
+
+:::note
+If every device on the network is trusted and the service is reachable only on that LAN, a looser `frame-ancestors *` is a smaller risk — but it still lets any site a kiosk's browser later visits frame the dashboard, so the domain-scoped version above is the safer default even then.
+:::
+
+Leave `Access-Control-Allow-*` and script/style CSP directives (`script-src`, `unsafe-eval`, and similar) out of this. CORS and script-execution policy aren't why the iframe is blocked, so loosening them doesn't help embedding — it just reopens the service's attack surface for no benefit.
 
 ## What you get in return
 

@@ -16,6 +16,20 @@
         --ok: #a6da95;
         --warn: #eed49f;
       }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #eff1f5;
+          --panel: #ffffff;
+          --raised: #e6e9ef;
+          --rule: #dce0e8;
+          --text: #4c4f69;
+          --text-muted: #5c5f77;
+          --text-dim: #8c8fa1;
+          --accent: #1e66f5;
+          --ok: #40a02b;
+          --warn: #df8e1d;
+        }
+      }
       * {
         box-sizing: border-box;
       }
@@ -181,6 +195,36 @@
       }
       .todo li.done span {
         text-decoration: line-through;
+      }
+
+      @media (max-width: 600px) {
+        body {
+          padding: 1.25rem;
+        }
+        header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.5rem;
+          margin-bottom: 1.25rem;
+        }
+        header h1 {
+          font-size: 1.3rem;
+        }
+        .clock {
+          text-align: left;
+        }
+        .clock .time {
+          font-size: 1.5rem;
+        }
+        .grid {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.6rem;
+          margin-bottom: 1rem;
+        }
+        main {
+          grid-template-columns: 1fr;
+          gap: 0.6rem;
+        }
       }
     </style>
   </head>

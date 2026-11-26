@@ -8,6 +8,7 @@ import {
 	type TabData,
 } from "$lib/api";
 import Icon from "$lib/icons/Icon.svelte";
+import { applyTheme } from "$lib/theme";
 
 const api = createApi();
 
@@ -63,8 +64,18 @@ async function refresh() {
 	loaded = true;
 }
 
+async function loadTheme() {
+	const { data, error } = await api.api.config.get();
+	if (error) {
+		console.error("Failed to load config", error);
+		return;
+	}
+	applyTheme(data.theme);
+}
+
 onMount(() => {
 	refresh();
+	loadTheme();
 
 	const source = new EventSource(`${resolveServerUrl()}/api/events`);
 	source.addEventListener("heartbeat", () => refresh());

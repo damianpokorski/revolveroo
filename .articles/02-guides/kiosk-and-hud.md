@@ -7,7 +7,8 @@ sidebar:
 
 The kiosk is the page a screen shows: `http://localhost/`, or a display's join URL.
 
-![The kiosk showing a dashboard with the HUD in the corner.](../../../assets/screenshots/kiosk.png)
+<img src="/revolveroo/screenshots/kiosk.png" alt="The kiosk showing a dashboard with the HUD in the corner." class="light:sl-hidden" />
+<img src="/revolveroo/screenshots/kiosk-day.png" alt="The kiosk showing a dashboard with the HUD in the corner." class="dark:sl-hidden" />
 
 ## Rotation
 
@@ -27,9 +28,11 @@ The HUD sits in the bottom-right corner. From it you can:
 
 The HUD has two forms. **Expanded** shows a full grid of tab glyphs. **Slimline** is a compact strip, better when a display has many tabs in its loop.
 
-![The expanded HUD with a grid of tab icons.](../../../assets/screenshots/hud-expanded.png)
+<img src="/revolveroo/screenshots/hud-expanded.png" alt="The expanded HUD with a grid of tab icons." class="light:sl-hidden" />
+<img src="/revolveroo/screenshots/hud-expanded-day.png" alt="The expanded HUD with a grid of tab icons." class="dark:sl-hidden" />
 
-![The slimline HUD, a compact strip.](../../../assets/screenshots/hud-slimline.png)
+<img src="/revolveroo/screenshots/hud-slimline.png" alt="The slimline HUD, a compact strip." class="light:sl-hidden" />
+<img src="/revolveroo/screenshots/hud-slimline-day.png" alt="The slimline HUD, a compact strip." class="dark:sl-hidden" />
 
 By default the HUD picks a form automatically. You can force either one in **Settings**, and choose a small, medium or large size for it.
 
@@ -51,7 +54,8 @@ These live under **Playback** in **Settings** and save automatically.
 
 The kiosk is responsive, so a phone or small tablet works as a display too.
 
-![The kiosk on a phone-sized screen.](../../../assets/screenshots/kiosk-mobile.png)
+<img src="/revolveroo/screenshots/kiosk-mobile.png" alt="The kiosk on a phone-sized screen." class="light:sl-hidden" />
+<img src="/revolveroo/screenshots/kiosk-mobile-day.png" alt="The kiosk on a phone-sized screen." class="dark:sl-hidden" />
 
 ## Daily reload
 

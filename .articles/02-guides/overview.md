@@ -7,7 +7,8 @@ sidebar:
 
 `http://localhost/overview` is a read-only page for checking on the whole set-up from one place. It updates live.
 
-![The overview page with attention items, display cards and a tabs by displays grid.](../../../assets/screenshots/overview.png)
+<img src="/revolveroo/screenshots/overview.png" alt="The overview page with attention items, display cards and a tabs by displays grid." class="light:sl-hidden" />
+<img src="/revolveroo/screenshots/overview-day.png" alt="The overview page with attention items, display cards and a tabs by displays grid." class="dark:sl-hidden" />
 
 It shows three things:
 

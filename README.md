@@ -4,9 +4,9 @@ A self-hosted kiosk app that cycles through your internal dashboards on tablets,
 
 Revolveroo is built for a **house full of screens**, not just one: a single ordered tab registry drives every physical **Display**, and each tab declares which displays it plays on and in which time windows.
 
-|                                                               |                                                                       |
-| ------------------------------------------------------------- | --------------------------------------------------------------------- |
-| ![Kiosk rotation](apps/docs/src/assets/screenshots/kiosk.png) | ![Settings, Tabs](apps/docs/src/assets/screenshots/settings-tabs.png) |
+|                                                               |                                                                   |
+| ------------------------------------------------------------- | ----------------------------------------------------------------- |
+| ![Kiosk rotation](apps/docs/src/assets/screenshots/kiosk.png) | ![Settings, Tabs](apps/docs/public/screenshots/settings-tabs.png) |
 
 ---
 
@@ -36,6 +36,23 @@ Versioned images are published to GHCR on every release, so there is no build st
 
 ```bash
 docker run -d --name revolveroo -p 80:80 -v revolveroo-data:/data ghcr.io/damianpokorski/revolveroo:latest
+```
+
+Or with Docker Compose:
+
+```yaml
+services:
+  revolveroo:
+    image: ghcr.io/damianpokorski/revolveroo:latest
+    container_name: revolveroo
+    ports:
+      - "80:80"
+    volumes:
+      - revolveroo-data:/data
+    restart: unless-stopped
+
+volumes:
+  revolveroo-data:
 ```
 
 Then open `http://localhost`. A default data file is created in the `revolveroo-data` volume on first boot, seeded with example tabs to explore.

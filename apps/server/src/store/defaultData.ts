@@ -106,7 +106,7 @@ export const DEFAULT_TABS: Tab[] = [
     refreshInterval: null,
     useProxy: false,
     inject: [],
-    icon: "",
+    icon: "",
   },
   {
     id: "fitbit",

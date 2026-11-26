@@ -27,7 +27,8 @@ The form draws a preview bar of the range. If the end time is earlier than the s
 
 In the tab's form, under **When**, choose **Only in these windows**, add a window, and pick the days it applies. You can add several windows to one tab.
 
-![The tab form with an "Only in these windows" row.](../../../assets/screenshots/tab-conditions.png)
+<img src="/revolveroo/screenshots/tab-conditions.png" alt="The tab form with an &quot;Only in these windows&quot; row." class="light:sl-hidden" />
+<img src="/revolveroo/screenshots/tab-conditions-day.png" alt="The tab form with an &quot;Only in these windows&quot; row." class="dark:sl-hidden" />
 
 Outside every window, the tab is skipped by autoplay.
 

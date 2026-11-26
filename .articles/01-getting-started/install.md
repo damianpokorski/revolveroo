@@ -12,6 +12,27 @@ docker run -d --name revolveroo -p 80:80 -v revolveroo-data:/data \
   ghcr.io/damianpokorski/revolveroo:latest
 ```
 
+Or with Docker Compose:
+
+```yaml
+services:
+  revolveroo:
+    image: ghcr.io/damianpokorski/revolveroo:latest
+    container_name: revolveroo
+    ports:
+      - "80:80"
+    volumes:
+      - revolveroo-data:/data
+    restart: unless-stopped
+
+volumes:
+  revolveroo-data:
+```
+
+```bash
+docker compose up -d
+```
+
 Then open `http://localhost`. The web UI and the API are served from the same address, so there is nothing else to expose.
 
 ## First boot

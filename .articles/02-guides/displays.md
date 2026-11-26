@@ -26,7 +26,8 @@ If a screen could match more than one Display, query parameter matches are check
 2. Enter a name and pick a match kind.
 3. Save. The form shows the **join URL**, with a QR code, to open on that screen.
 
-![The display form with a name, a query parameter match rule and a join URL with QR code.](../../../assets/screenshots/display-form.png)
+<img src="/revolveroo/screenshots/display-form.png" alt="The display form with a name, a query parameter match rule and a join URL with QR code." class="light:sl-hidden" />
+<img src="/revolveroo/screenshots/display-form-day.png" alt="The display form with a name, a query parameter match rule and a join URL with QR code." class="dark:sl-hidden" />
 
 Bookmark the join URL on the device (or scan the QR code) and that screen will always identify itself as that Display.
 

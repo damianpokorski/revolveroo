@@ -58,6 +58,7 @@ apps/web/e2e/.e2e.yaml
 apps/web/e2e/.e2e.db*
 apps/web/test-results/
 apps/web/playwright-report/
+apps/web/e2e/.hero-raw/
 apps/web/blob-report/
 
 # Misc

@@ -11,7 +11,8 @@ This walkthrough takes you from a fresh install to a screen rotating through you
 
 Open `http://localhost/settings` and add a **Display** for each physical screen. Give it a name and a match rule, either a query parameter such as `room=office` or a hostname. The display's edit form shows a join URL, with a QR code, to open on that screen.
 
-![The display form with a name, a query parameter match rule and a join URL with QR code.](../../../assets/screenshots/display-form.png)
+<img src="/revolveroo/screenshots/display-form.png" alt="The display form with a name, a query parameter match rule and a join URL with QR code." class="light:sl-hidden" />
+<img src="/revolveroo/screenshots/display-form-day.png" alt="The display form with a name, a query parameter match rule and a join URL with QR code." class="dark:sl-hidden" />
 
 See [Displays](/revolveroo/guides/displays/) for how matching works.
 
@@ -19,7 +20,8 @@ See [Displays](/revolveroo/guides/displays/) for how matching works.
 
 In the **Tabs** section, click **Add tab**, give it a title and a URL, then save.
 
-![The tab form with a title, URL, icon picker, loop setting and the Shows on and When block.](../../../assets/screenshots/tab-form.png)
+<img src="/revolveroo/screenshots/tab-form.png" alt="The tab form with a title, URL, icon picker, loop setting and the Shows on and When block." class="light:sl-hidden" />
+<img src="/revolveroo/screenshots/tab-form-day.png" alt="The tab form with a title, URL, icon picker, loop setting and the Shows on and When block." class="dark:sl-hidden" />
 
 In the tab's **Shows on** and **When** block:
 

@@ -87,6 +87,16 @@ export async function updateTab(
   return res.json();
 }
 
+export async function reorderTabs(request: APIRequestContext, ids: string[]) {
+  const res = await request.patch(`${API_BASE}/tabs/reorder`, {
+    data: { ids },
+  });
+  if (!res.ok()) {
+    throw new Error(`PATCH /tabs/reorder failed: ${res.status()} ${await res.text()}`);
+  }
+  return res.json();
+}
+
 export interface SeededDisplay {
   id: string;
   name: string;

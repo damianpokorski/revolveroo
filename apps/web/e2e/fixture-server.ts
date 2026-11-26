@@ -3,6 +3,9 @@
 // these files never ship in a real build. Serves these pages:
 //  - friendly.html: no restrictive headers, replaces the old live
 //    ha.media.server/whatson.media.server dependency in existing specs.
+//  - weather.html: a second, visually distinct fixture (different layout/accent) —
+//    only used by hero-video.spec.ts, which needs tabs to actually look different
+//    from one another for the rotation/HUD-tap beats to read as real on camera.
 //  - hostile.html: served with X-Frame-Options/CSP headers that refuse framing,
 //    giving proxy.spec.ts something real to prove Caddy's header-stripping against.
 //  - /embed?src=…: a bare page that frames `src`. It lives on a different origin
@@ -26,6 +29,11 @@ Bun.serve({
     const path = new URL(req.url).pathname;
     if (path === "/friendly.html" || path === "/") {
       return new Response(Bun.file(join(FIXTURES_DIR, "friendly.html")), {
+        headers: { "Content-Type": "text/html" },
+      });
+    }
+    if (path === "/weather.html") {
+      return new Response(Bun.file(join(FIXTURES_DIR, "weather.html")), {
         headers: { "Content-Type": "text/html" },
       });
     }

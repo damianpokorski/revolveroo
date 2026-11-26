@@ -39,3 +39,27 @@
   border: 1px solid var(--sl-color-gray-5);
   border-radius: 0.5rem;
 }
+
+/* Homepage hero: a short looping recording of the real app (kiosk rotation, HUD tap,
+   settings reorder — see .articles/README.md's "Hero video" section for how it's generated).
+   Falls back to a static screenshot pair for prefers-reduced-motion, matching the existing
+   light/dark screenshot pattern used elsewhere in the docs. */
+.hero-video,
+.hero-video-fallback {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.5rem;
+}
+.hero-video-fallback {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-video {
+    display: none;
+  }
+  .hero-video-fallback {
+    display: block;
+  }
+}
