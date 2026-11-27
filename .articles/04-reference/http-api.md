@@ -41,6 +41,16 @@ These only matter when `PROXY_DOMAIN` is set. See [Embedding services that block
 | `GET /api/proxy/frames`            | `{ enabled, frames }`, the address each proxied tab's frame should load, keyed by tab id. The kiosk fetches this because the addresses are derived from a server-side secret.                         |
 | `GET /api/proxy/seed/:tabId?next=` | The seed page that writes a tab's cookie and `localStorage` rows, then redirects to `next`. The proxy serves it at `/__revolveroo/seed` on the tab's own address, and it answers `404` anywhere else. |
 
+## Commands and notifications
+
+Fire-and-forget routes for pushing a toast or forcing a tab onto screen from an external system such as Home Assistant. Nothing here is persisted — see the [Home Assistant integration guide](/revolveroo/guides/home-assistant/) for the full field reference and a worked example.
+
+| Route                         | Purpose                                                                   |
+| ----------------------------- | ------------------------------------------------------------------------- |
+| `POST /api/notifications`     | Push a toast to the targeted displays.                                    |
+| `POST /api/commands/show-tab` | Force a tab onto the targeted displays for a duration, or until released. |
+| `POST /api/commands/resume`   | Release a `mode: "lock"` forced tab.                                      |
+
 ## Cross-origin requests
 
 In production the API sends no CORS headers, because the web UI is served from the same origin. State-changing requests (`POST`, `PUT`, `PATCH`, `DELETE`) that a browser reports as coming from another site or origin are refused with `403`. Scripts and `curl` send no `Origin` header and are unaffected.

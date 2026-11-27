@@ -2,64 +2,75 @@
    Values are copied from apps/web/src/app.css (Catppuccin Mocha for dark, Latte for light),
    not imported, so keep them in sync by hand if the app's palette changes. */
 :root {
-  --sl-color-black: #1e1e2e;
-  --sl-color-gray-6: #181825;
-  --sl-color-gray-5: #313244;
-  --sl-color-gray-4: #45475a;
-  --sl-color-gray-3: #9399b2;
-  --sl-color-gray-2: #bac2de;
-  --sl-color-gray-1: #cdd6f4;
-  --sl-color-white: #cdd6f4;
-  --sl-color-accent-low: #332e46;
-  --sl-color-accent: #cba6f7;
-  --sl-color-accent-high: #e0cdfb;
-  --sl-color-bg-nav: #181825;
-  --sl-color-bg-sidebar: #181825;
+	--sl-color-black: #1e1e2e;
+	--sl-color-gray-6: #181825;
+	--sl-color-gray-5: #313244;
+	--sl-color-gray-4: #45475a;
+	--sl-color-gray-3: #9399b2;
+	--sl-color-gray-2: #bac2de;
+	--sl-color-gray-1: #cdd6f4;
+	--sl-color-white: #cdd6f4;
+	--sl-color-accent-low: #332e46;
+	--sl-color-accent: #cba6f7;
+	--sl-color-accent-high: #e0cdfb;
+	--sl-color-bg-nav: #181825;
+	--sl-color-bg-sidebar: #181825;
 }
 
 :root[data-theme="light"] {
-  --sl-color-white: #4c4f69;
-  --sl-color-gray-1: #4c4f69;
-  --sl-color-gray-2: #5c5f77;
-  --sl-color-gray-3: #63667e;
-  --sl-color-gray-4: #7c7f93;
-  --sl-color-gray-5: #ccd0da;
-  --sl-color-gray-6: #e6e9ef;
-  --sl-color-gray-7: #dce0e8;
-  --sl-color-black: #eff1f5;
-  --sl-color-accent-low: #e3dbf4;
-  --sl-color-accent: #8839ef;
-  --sl-color-accent-high: #6a24c4;
-  --sl-color-bg-nav: #e6e9ef;
-  --sl-color-bg-sidebar: #e6e9ef;
+	--sl-color-white: #4c4f69;
+	--sl-color-gray-1: #4c4f69;
+	--sl-color-gray-2: #5c5f77;
+	--sl-color-gray-3: #63667e;
+	--sl-color-gray-4: #7c7f93;
+	--sl-color-gray-5: #ccd0da;
+	--sl-color-gray-6: #e6e9ef;
+	--sl-color-gray-7: #dce0e8;
+	--sl-color-black: #eff1f5;
+	--sl-color-accent-low: #e3dbf4;
+	--sl-color-accent: #8839ef;
+	--sl-color-accent-high: #6a24c4;
+	--sl-color-bg-nav: #e6e9ef;
+	--sl-color-bg-sidebar: #e6e9ef;
 }
 
 /* Screenshots are captured on the dark theme; keep them from glaring on the light one. */
 .sl-markdown-content img {
-  border: 1px solid var(--sl-color-gray-5);
-  border-radius: 0.5rem;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.5rem;
 }
 
 /* Homepage hero: a short looping recording of the real app (kiosk rotation, HUD tap,
    settings reorder — see .articles/README.md's "Hero video" section for how it's generated).
    Falls back to a static screenshot pair for prefers-reduced-motion, matching the existing
-   light/dark screenshot pattern used elsewhere in the docs. */
-.hero-video,
-.hero-video-fallback {
-  display: block;
-  width: 100%;
-  height: auto;
-  border: 1px solid var(--sl-color-gray-5);
-  border-radius: 0.5rem;
-}
-.hero-video-fallback {
-  display: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .hero-video {
-    display: none;
-  }
-  .hero-video-fallback {
-    display: block;
-  }
+   light/dark screenshot pattern used elsewhere in the docs.
+
+   The display rules below are reopened inside Starlight's own `starlight.utils` cascade
+   layer (where `.light:sl-hidden`/`.dark:sl-hidden` live) rather than left unlayered. CSS
+   cascade layers always rank an unlayered declaration above every layered one regardless of
+   specificity, so an unlayered `.hero-video { display: block }` here would silently always
+   beat the layered, higher-specificity `[data-theme='light'] .light\:sl-hidden { display:
+   none }` — showing both the night and day hero videos at once instead of toggling between
+   them. Reopening the same layer puts both rules back on equal footing, where normal
+   specificity (and Starlight's rule has more of it) decides correctly. */
+@layer starlight.utils {
+	.hero-video,
+	.hero-video-fallback {
+		display: block;
+		width: 100%;
+		height: auto;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.5rem;
+	}
+	.hero-video-fallback {
+		display: none;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.hero-video {
+			display: none;
+		}
+		.hero-video-fallback {
+			display: block;
+		}
+	}
 }

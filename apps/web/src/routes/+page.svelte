@@ -15,6 +15,7 @@ import { DEFAULT_TAB_TRANSITION, type TabTransition } from "$lib/tabTransition";
 import { applyTheme } from "$lib/theme";
 import { pushToast } from "$lib/toast.svelte";
 import { resolveDisplay, visible } from "$lib/visibility";
+import NotificationStack from "../components/NotificationStack.svelte";
 import Toast from "../components/Toast.svelte";
 
 const api = createApi();
@@ -141,6 +142,41 @@ onMount(() => {
 		await refreshData();
 		if (tabs.length > 0) switchTab(0, { graceActive: false });
 	});
+	// Home Assistant command surface (see CommandsService/NotificationsService):
+	// fire-and-forget broadcasts, nothing to catch up on for a client that
+	// missed one — each display just self-filters by `targets`.
+	source.addEventListener("show-tab", (event) => {
+		const data = JSON.parse((event as MessageEvent).data);
+		if (!targetsMatch(data.targets)) return;
+		forcedTab = {
+			tabId: data.tabId,
+			until: data.until ? new Date(data.until).getTime() : null,
+		};
+	});
+	source.addEventListener("resume", (event) => {
+		const data = JSON.parse((event as MessageEvent).data);
+		if (!targetsMatch(data.targets)) return;
+		forcedTab = null;
+	});
+	source.addEventListener("notification", (event) => {
+		const data = JSON.parse((event as MessageEvent).data);
+		if (!targetsMatch(data.targets)) return;
+		notifications = [
+			...notifications,
+			{
+				id: data.id,
+				title: data.title,
+				message: data.message,
+				dismiss: data.dismiss,
+			},
+		];
+		if (data.dismiss !== "manual") {
+			notificationTimers.set(
+				data.id,
+				setTimeout(() => dismissNotification(data.id), data.dismiss.timeoutMs),
+			);
+		}
+	});
 	return () => source.close();
 });
 
@@ -152,6 +188,44 @@ let activeTabIndex = $state(0);
 let progressPercentage = $state(0);
 let graceActive = $state(false);
 let dimmed = $state(false);
+
+// --- Home Assistant commands (forced tab + toasts, see CommandsService /
+// NotificationsService) ---
+function targetsMatch(targets: "all" | string[]): boolean {
+	return (
+		targets === "all" || (displayId !== null && targets.includes(displayId))
+	);
+}
+
+let forcedTab = $state<{ tabId: string; until: number | null } | null>(null);
+const forcedIndex = $derived(
+	forcedTab ? tabs.findIndex((t) => t.id === forcedTab?.tabId) : -1,
+);
+// Jump to the forced tab as soon as it (or the visible tab list) resolves to a
+// match; a tabId outside `tabs` (hidden by its own display/window rules) is
+// silently ignored rather than fought with — those rules still win.
+$effect(() => {
+	if (!forcedTab || forcedIndex === -1) return;
+	if (activeTabIndex !== forcedIndex)
+		switchTab(forcedIndex, { graceActive: false });
+});
+
+interface HaNotification {
+	id: string;
+	title?: string;
+	message: string;
+	dismiss: "manual" | { timeoutMs: number };
+}
+let notifications = $state<HaNotification[]>([]);
+const notificationTimers = new Map<string, ReturnType<typeof setTimeout>>();
+function dismissNotification(id: string) {
+	clearTimeout(notificationTimers.get(id));
+	notificationTimers.delete(id);
+	notifications = notifications.filter((n) => n.id !== id);
+}
+onDestroy(() => {
+	for (const timer of notificationTimers.values()) clearTimeout(timer);
+});
 
 const activeTab = $derived(tabs[activeTabIndex]);
 const loopCount = $derived(tabs.filter((t) => t.inLoop).length);
@@ -234,7 +308,13 @@ onMount(() => {
 		// per-tick increment drifts from wall-clock time and reads as jitter.
 		const elapsed = lastTick === null ? 0 : now - lastTick;
 		lastTick = now;
+		// Checked every frame, independent of the guards below, so a
+		// duration-mode forced tab still resumes even while e.g. the menu is open.
+		if (forcedTab && forcedTab.until !== null && Date.now() > forcedTab.until) {
+			forcedTab = null;
+		}
 		if (menu || emptyVariant || activeTabFailing) return;
+		if (forcedTab) return;
 		if (!autoplayEnabled || !autoplayRunning || tapPaused) return;
 		progress += elapsed;
 		const effectiveInterval = graceActive
@@ -632,6 +712,7 @@ $effect(() => {
 
 <div class="wrapper" data-transition={tabTransition}>
 	<Toast />
+	<NotificationStack {notifications} ondismiss={dismissNotification} />
 	{#if bannerState}
 		<div class="banner banner-{bannerState}" data-testid="system-banner">{BANNER_COPY[bannerState]}</div>
 	{/if}

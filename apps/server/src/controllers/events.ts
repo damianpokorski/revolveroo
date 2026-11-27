@@ -36,7 +36,10 @@ export const eventsController = new Elysia().get(
 				setTimeout(() => resolve(false), HEARTBEAT_MS),
 			);
 			const result = await Promise.race([
-				waitForAnyEvent(["change", "heartbeat"], request.signal),
+				waitForAnyEvent(
+					["change", "heartbeat", "show-tab", "resume", "notification"],
+					request.signal,
+				),
 				heartbeatTimeout,
 			]);
 			if (request.signal.aborted) return;
@@ -45,10 +48,13 @@ export const eventsController = new Elysia().get(
 			// (with no `data`) never dispatches to the browser.
 			if (!result) {
 				yield sse({ event: "ping", data: "ping" });
-			} else if (result.event === "heartbeat") {
-				yield sse({ event: "heartbeat", data: JSON.stringify(result.payload) });
-			} else {
+			} else if (result.event === "change") {
 				yield sse({ event: "change", data: "change" });
+			} else {
+				yield sse({
+					event: result.event,
+					data: JSON.stringify(result.payload),
+				});
 			}
 		}
 	},

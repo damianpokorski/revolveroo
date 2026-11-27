@@ -13,6 +13,7 @@ Revolveroo is built for a trusted home or office network. **Its API has no login
 - State-changing requests (`POST`, `PUT`, `PATCH`, `DELETE`) that a browser reports as coming from another site or origin are refused with `403`. Scripts and `curl` send no `Origin` and are unaffected.
 - If you put Revolveroo behind a front proxy that rewrites the `Host` header, have it send `X-Forwarded-Host` too.
 - **Not covered:** DNS-rebinding attacks against the API.
+- The [Home Assistant integration](/revolveroo/guides/home-assistant/)'s notification and forced-tab endpoints are unauthenticated like the rest of the API — anyone who can reach it can push a toast or force a tab on any display.
 
 ## How proxied tabs are protected
 

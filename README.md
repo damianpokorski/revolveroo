@@ -25,6 +25,23 @@ Revolveroo is built for a **house full of screens**, not just one: a single orde
 - **Overview** — a read-only `/overview` page showing which displays are online, what's currently on screen, and a tabs × displays grid of where everything lands
 - **Health-aware autoplay** — a tab whose URL is failing is skipped automatically instead of showing a blank frame, with a failure card explaining what's wrong and what happens next
 - **Optional per-tab reverse proxy** — a per-tab toggle routes a stubborn service's iframe through Revolveroo's own bundled Caddy proxy, which strips the `X-Frame-Options`/CSP headers refusing to be framed, instead of leaving "open in a new tab" as the only option. Proxied tabs can also inject request/response headers, cookies, query params and `localStorage` values (e.g. a one-click preset that keeps Home Assistant's sidebar hidden)
+- **Home Assistant integration** — push a toast notification or force a tab onto any (or all) displays from a Home Assistant automation via one REST call, no custom component needed — handy for a camera motion event or doorbell ring interrupting the rotation for a moment
+
+---
+
+## Home Assistant integration
+
+Trigger a toast or force a specific tab onto screen straight from a Home Assistant automation — `rest_command:` is enough, there's nothing to install:
+
+```bash
+curl -X POST http://revolveroo.local/api/notifications \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Front door", "message": "Motion detected", "dismiss": "manual", "targets": "all"}'
+```
+
+![Two stacked notifications over the kiosk, one with a title.](apps/docs/public/screenshots/notification.png)
+
+See the [Home Assistant integration guide](https://damianpokorski.github.io/revolveroo/guides/home-assistant/) for forcing a tab on screen, targeting specific displays, and a full automation example.
 
 ---
 
@@ -64,6 +81,7 @@ Guides, concepts and reference live on the docs site: **<https://damianpokorski.
 - [Install with Docker](https://damianpokorski.github.io/revolveroo/getting-started/install/) and [set up your first kiosk](https://damianpokorski.github.io/revolveroo/getting-started/first-kiosk/)
 - [HTTPS behind a reverse proxy](https://damianpokorski.github.io/revolveroo/getting-started/https-reverse-proxy/)
 - [Embedding services that block iframing](https://damianpokorski.github.io/revolveroo/guides/embedding-blocked-services/)
+- [Home Assistant integration](https://damianpokorski.github.io/revolveroo/guides/home-assistant/)
 - [Environment variables](https://damianpokorski.github.io/revolveroo/reference/environment-variables/), [data file schema](https://damianpokorski.github.io/revolveroo/reference/data-file-schema/) and [security model](https://damianpokorski.github.io/revolveroo/reference/security/)
 
 Revolveroo's API has no login. It is meant for a trusted network, so read the security model before exposing it anywhere else.
