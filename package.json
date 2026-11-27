@@ -35,6 +35,7 @@
     "docs:build": "vp run --filter docs docs:build",
     "docs:preview": "vp run --filter docs docs:preview",
     "docs:screenshots": "vp run --filter web docs:screenshots",
+    "docs:openapi": "vp run --filter server docs:openapi",
     "fonts:setup": "vp run --filter web fonts:setup",
     "check-versions": "scripts/check-tool-versions.sh",
     "release:dry": "semantic-release --dry-run --no-ci",

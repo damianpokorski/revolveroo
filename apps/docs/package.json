@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "docs:dev": "astro dev",
-    "docs:build": "astro build",
+    "docs:dev": "bun run scripts/generate-api-reference.ts && astro dev",
+    "docs:build": "bun run scripts/generate-api-reference.ts && astro build",
     "docs:preview": "astro preview"
   },
   "devDependencies": {

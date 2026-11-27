@@ -132,6 +132,17 @@ hero:
 
 `.hero-video`/`.hero-video-fallback` styling lives in `apps/docs/src/styles/revolveroo.css`: both videos are hidden and the matching static screenshot shown instead under `prefers-reduced-motion: reduce`, same mechanism as the guide screenshot pairs above.
 
+## OpenAPI reference
+
+`/api-reference/` (linked from [`04-reference/http-api.md`](04-reference/http-api.md)) is a static Scalar page covering the server's full OpenAPI surface. Unlike everything above, it's split across two scripts with opposite commit policies:
+
+1. **The spec is committed and reviewed, like the screenshots.** `apps/server/scripts/generate-openapi.ts` (`bun run docs:openapi`) imports the real Elysia `router` and calls `router.handle(new Request(...))` against its own `/api/openapi/json` route — no `.listen()`, no data file, the same in-process pattern the controller tests use — and writes the result to `apps/docs/public/openapi.json`. Run it and review the diff whenever a route's shape changes, same as regenerating screenshots after a UI change.
+2. **The HTML is generated at build time and never committed**, unlike the spec. `apps/docs/scripts/generate-api-reference.ts` reads the committed `openapi.json` and renders a self-contained page around Scalar's CDN script (`<script data-url="../openapi.json">` plus the standalone bundle — mirroring the same integration `@elysia/openapi` uses for the live app's own `/api/openapi`, hand-rolled here instead of taken as an `apps/docs` dependency). It's wired into both `docs:dev` and `docs:build` as a pre-step, so it's always fresh and there's nothing to keep in sync by hand — treat it like Astro's own `dist/` output, not like the committed spec it reads from.
+
+**Why `data-url` and not inlining the spec**: an earlier version embedded the spec directly into Scalar's `data-configuration` attribute via `JSON.stringify`. That broke the moment any route summary contained an apostrophe (several do — "a display's current tab" is a real one) since the JSON's own `'` prematurely closed the single-quoted HTML attribute. Referencing the spec by URL sidesteps HTML-attribute escaping entirely.
+
+**No "try it"**: `hideTestRequestButton: true` is set because this page has no backend behind it on GitHub Pages — it's a read-only reference, not a live console. The live app's own `/api/openapi` (Scalar, via `@elysia/openapi`) keeps request execution enabled, since that one really does have a server to call.
+
 ## Previewing
 
 ```bash

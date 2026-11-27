@@ -1,0 +1,2225 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Revolveroo API",
+    "description": "HTTP API for Revolveroo, a self-hosted kiosk tab-rotation app. See https://damianpokorski.github.io/revolveroo/ for full docs. The API has no authentication — see the security model reference before exposing it beyond a trusted network.",
+    "version": "1.0.0",
+    "license": {
+      "name": "MIT",
+      "url": "https://github.com/damianpokorski/revolveroo/blob/main/LICENSE"
+    }
+  },
+  "paths": {
+    "/api/": {
+      "get": {
+        "operationId": "getApi"
+      }
+    },
+    "/api/health": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["status", "proxyEnabled"],
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "proxyEnabled": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiHealth"
+      }
+    },
+    "/api/config/": {
+      "get": {
+        "summary": "Get app configuration",
+        "tags": ["config"],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Config"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiConfig"
+      },
+      "put": {
+        "summary": "Update app configuration",
+        "tags": ["config"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Config"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Config"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Config"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Config"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "putApiConfig"
+      }
+    },
+    "/api/tabs/": {
+      "get": {
+        "summary": "List all tabs",
+        "tags": ["tabs"],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TabList"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiTabs"
+      },
+      "post": {
+        "summary": "Create a new tab",
+        "tags": ["tabs"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TabBody"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/TabBody"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/TabBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tab"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request was well-formed but contains semantic errors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntityError"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiTabs"
+      }
+    },
+    "/api/tabs/reorder": {
+      "patch": {
+        "summary": "Reorder tabs",
+        "tags": ["tabs"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["ids"],
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["ids"],
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["ids"],
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TabList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "patchApiTabsReorder"
+      }
+    },
+    "/api/tabs/health": {
+      "get": {
+        "summary": "Get per-tab URL health",
+        "tags": ["tabs"],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TabHealth"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiTabsHealth"
+      }
+    },
+    "/api/tabs/{id}": {
+      "get": {
+        "summary": "Get a tab by id",
+        "tags": ["tabs"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tab"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiTabsById"
+      },
+      "put": {
+        "summary": "Update a tab",
+        "tags": ["tabs"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TabBody"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/TabBody"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/TabBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tab"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request was well-formed but contains semantic errors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntityError"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "putApiTabsById"
+      },
+      "delete": {
+        "summary": "Delete a tab",
+        "tags": ["tabs"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tab"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "deleteApiTabsById"
+      }
+    },
+    "/api/windows/": {
+      "get": {
+        "summary": "List all time windows",
+        "tags": ["windows"],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowList"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiWindows"
+      },
+      "post": {
+        "summary": "Create a new time window",
+        "tags": ["windows"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowBody"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowBody"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Window"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiWindows"
+      }
+    },
+    "/api/windows/{id}": {
+      "get": {
+        "summary": "Get a time window by id",
+        "tags": ["windows"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Window"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiWindowsById"
+      },
+      "put": {
+        "summary": "Update a time window",
+        "tags": ["windows"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowBody"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowBody"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Window"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "putApiWindowsById"
+      },
+      "delete": {
+        "summary": "Delete a time window",
+        "tags": ["windows"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Window"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "deleteApiWindowsById"
+      }
+    },
+    "/api/displays/": {
+      "get": {
+        "summary": "List all displays",
+        "tags": ["displays"],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisplayList"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiDisplays"
+      },
+      "post": {
+        "summary": "Create a new display",
+        "tags": ["displays"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisplayBody"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/DisplayBody"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/DisplayBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Display"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiDisplays"
+      }
+    },
+    "/api/displays/{id}": {
+      "get": {
+        "summary": "Get a display by id",
+        "tags": ["displays"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Display"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiDisplaysById"
+      },
+      "put": {
+        "summary": "Update a display",
+        "tags": ["displays"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisplayBody"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/DisplayBody"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/DisplayBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Display"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "putApiDisplaysById"
+      },
+      "delete": {
+        "summary": "Delete a display",
+        "tags": ["displays"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Display"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "deleteApiDisplaysById"
+      }
+    },
+    "/api/displays/{id}/heartbeat": {
+      "post": {
+        "summary": "Report a display's current tab and frame state",
+        "tags": ["displays"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["currentTabId", "frameState"],
+                "properties": {
+                  "currentTabId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "frameState": {
+                    "type": "string",
+                    "enum": ["ok", "error", "timeout"]
+                  },
+                  "progressPercent": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["currentTabId", "frameState"],
+                "properties": {
+                  "currentTabId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "frameState": {
+                    "type": "string",
+                    "enum": ["ok", "error", "timeout"]
+                  },
+                  "progressPercent": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["currentTabId", "frameState"],
+                "properties": {
+                  "currentTabId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "frameState": {
+                    "type": "string",
+                    "enum": ["ok", "error", "timeout"]
+                  },
+                  "progressPercent": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["ok"],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiDisplaysByIdHeartbeat"
+      }
+    },
+    "/api/overview/": {
+      "get": {
+        "summary": "Read-only aggregated live state for the Overview page",
+        "tags": ["overview"],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Overview"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiOverview"
+      }
+    },
+    "/api/proxy/frames": {
+      "get": {
+        "summary": "Current iframe URL for each proxied tab (stable until the proxy secret is rotated)",
+        "tags": ["proxy"],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProxyFrames"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiProxyFrames"
+      }
+    },
+    "/api/proxy/seed/{tabId}": {
+      "get": {
+        "summary": "Seed page that writes a proxied tab's cookies/localStorage, then redirects into it",
+        "tags": ["proxy"],
+        "parameters": [
+          {
+            "name": "tabId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "next",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "The requested resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiProxySeedByTabId"
+      }
+    },
+    "/api/events": {
+      "get": {
+        "operationId": "getApiEvents"
+      }
+    },
+    "/api/commands/show-tab": {
+      "post": {
+        "summary": "Force a tab onto the targeted displays",
+        "tags": ["commands"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShowTabBody"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/ShowTabBody"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ShowTabBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["ok"],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiCommandsShow-tab"
+      }
+    },
+    "/api/commands/resume": {
+      "post": {
+        "summary": "Release a forced tab and resume normal rotation",
+        "tags": ["commands"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResumeBody"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/ResumeBody"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ResumeBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["ok"],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiCommandsResume"
+      }
+    },
+    "/api/notifications/": {
+      "post": {
+        "summary": "Push a toast notification to targeted displays",
+        "tags": ["notifications"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotifyBody"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/NotifyBody"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/NotifyBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiNotifications"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BadRequestError": {
+        "description": "The request was malformed or invalid",
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "$id": "#/components/schemas/BadRequestError"
+      },
+      "NotFoundError": {
+        "description": "The requested resource was not found",
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "$id": "#/components/schemas/NotFoundError"
+      },
+      "UnprocessableEntityError": {
+        "description": "The request was well-formed but contains semantic errors",
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "$id": "#/components/schemas/UnprocessableEntityError"
+      },
+      "InternalServerError": {
+        "description": "An unexpected error occurred on the server",
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "$id": "#/components/schemas/InternalServerError"
+      },
+      "Config": {
+        "type": "object",
+        "required": [
+          "playbackInterval",
+          "autoplayEnabled",
+          "theme",
+          "tabTransition",
+          "kioskControls",
+          "kioskControlsSize",
+          "dailyReloadTime"
+        ],
+        "properties": {
+          "playbackInterval": {
+            "type": "number"
+          },
+          "autoplayEnabled": {
+            "type": "boolean"
+          },
+          "theme": {
+            "type": "string",
+            "enum": [
+              "mocha",
+              "macchiato",
+              "frappe",
+              "latte",
+              "rose-pine",
+              "rose-pine-dawn",
+              "tokyo-night",
+              "tokyo-night-day",
+              "kanagawa",
+              "kanagawa-lotus",
+              "nord",
+              "dracula"
+            ]
+          },
+          "tabTransition": {
+            "type": "string",
+            "enum": ["none", "crossfade", "slide"]
+          },
+          "kioskControls": {
+            "type": "string",
+            "enum": ["auto", "slim", "expanded"]
+          },
+          "kioskControlsSize": {
+            "type": "string",
+            "enum": ["s", "m", "l"]
+          },
+          "dailyReloadTime": {
+            "nullable": true,
+            "anyOf": [
+              {
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "$id": "#/components/schemas/Config"
+      },
+      "Tab": {
+        "type": "object",
+        "required": [
+          "id",
+          "url",
+          "title",
+          "inLoop",
+          "displays",
+          "windows",
+          "customDuration",
+          "refreshInterval",
+          "icon",
+          "useProxy",
+          "inject"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "inLoop": {
+            "type": "boolean"
+          },
+          "displays": {
+            "nullable": true,
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "windows": {
+            "nullable": true,
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["windowId", "days"],
+                  "properties": {
+                    "windowId": {
+                      "type": "string"
+                    },
+                    "days": {
+                      "type": "array",
+                      "items": {
+                        "minimum": 0,
+                        "maximum": 6,
+                        "anyOf": [
+                          {
+                            "format": "integer",
+                            "default": 0,
+                            "type": "string"
+                          },
+                          {
+                            "minimum": 0,
+                            "maximum": 6,
+                            "type": "integer"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "customDuration": {
+            "nullable": true,
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "refreshInterval": {
+            "nullable": true,
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "icon": {
+            "nullable": true,
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "useProxy": {
+            "type": "boolean"
+          },
+          "inject": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["kind", "key", "value"],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["requestHeader", "responseHeader", "cookie", "query", "localStorage"]
+                },
+                "key": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "$id": "#/components/schemas/Tab"
+      },
+      "TabBody": {
+        "type": "object",
+        "required": ["url", "title"],
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "inLoop": {
+            "type": "boolean"
+          },
+          "displays": {
+            "nullable": true,
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "windows": {
+            "nullable": true,
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["windowId", "days"],
+                  "properties": {
+                    "windowId": {
+                      "type": "string"
+                    },
+                    "days": {
+                      "type": "array",
+                      "items": {
+                        "minimum": 0,
+                        "maximum": 6,
+                        "anyOf": [
+                          {
+                            "format": "integer",
+                            "default": 0,
+                            "type": "string"
+                          },
+                          {
+                            "minimum": 0,
+                            "maximum": 6,
+                            "type": "integer"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "customDuration": {
+            "nullable": true,
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "refreshInterval": {
+            "nullable": true,
+            "anyOf": [
+              {
+                "minimum": 60000,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "icon": {
+            "nullable": true,
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "useProxy": {
+            "type": "boolean"
+          },
+          "inject": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["kind", "key", "value"],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["requestHeader", "responseHeader", "cookie", "query", "localStorage"]
+                },
+                "key": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "$id": "#/components/schemas/TabBody"
+      },
+      "TabList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "id",
+            "url",
+            "title",
+            "inLoop",
+            "displays",
+            "windows",
+            "customDuration",
+            "refreshInterval",
+            "icon",
+            "useProxy",
+            "inject"
+          ],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "inLoop": {
+              "type": "boolean"
+            },
+            "displays": {
+              "nullable": true,
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "windows": {
+              "nullable": true,
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["windowId", "days"],
+                    "properties": {
+                      "windowId": {
+                        "type": "string"
+                      },
+                      "days": {
+                        "type": "array",
+                        "items": {
+                          "minimum": 0,
+                          "maximum": 6,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 0,
+                              "maximum": 6,
+                              "type": "integer"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "customDuration": {
+              "nullable": true,
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "refreshInterval": {
+              "nullable": true,
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "icon": {
+              "nullable": true,
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "useProxy": {
+              "type": "boolean"
+            },
+            "inject": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["kind", "key", "value"],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": ["requestHeader", "responseHeader", "cookie", "query", "localStorage"]
+                  },
+                  "key": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "$id": "#/components/schemas/Tab"
+        },
+        "$id": "#/components/schemas/TabList"
+      },
+      "TabHealth": {
+        "type": "object",
+        "patternProperties": {
+          "^(.*)$": {
+            "type": "object",
+            "required": ["status", "latencyMs", "httpStatus", "lastGoodAt", "lastCheckedAt"],
+            "properties": {
+              "status": {
+                "anyOf": [
+                  {
+                    "const": "ok",
+                    "type": "string"
+                  },
+                  {
+                    "const": "slow",
+                    "type": "string"
+                  },
+                  {
+                    "const": "fail",
+                    "type": "string"
+                  }
+                ]
+              },
+              "latencyMs": {
+                "nullable": true,
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "httpStatus": {
+                "nullable": true,
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lastGoodAt": {
+                "nullable": true,
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lastCheckedAt": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "$id": "#/components/schemas/TabHealth"
+      },
+      "Window": {
+        "type": "object",
+        "required": ["id", "name", "startTime", "endTime"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "startTime": {
+            "type": "string"
+          },
+          "endTime": {
+            "type": "string"
+          }
+        },
+        "$id": "#/components/schemas/Window"
+      },
+      "WindowBody": {
+        "type": "object",
+        "required": ["name", "startTime", "endTime"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "startTime": {
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "type": "string"
+          },
+          "endTime": {
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "type": "string"
+          }
+        },
+        "$id": "#/components/schemas/WindowBody"
+      },
+      "WindowList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["id", "name", "startTime", "endTime"],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "startTime": {
+              "type": "string"
+            },
+            "endTime": {
+              "type": "string"
+            }
+          },
+          "$id": "#/components/schemas/Window"
+        },
+        "$id": "#/components/schemas/WindowList"
+      },
+      "Display": {
+        "type": "object",
+        "required": ["id", "name", "match"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "match": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": ["kind", "key", "value"],
+                "properties": {
+                  "kind": {
+                    "const": "queryParam",
+                    "type": "string"
+                  },
+                  "key": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": ["kind", "value"],
+                "properties": {
+                  "kind": {
+                    "const": "hostname",
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "$id": "#/components/schemas/Display"
+      },
+      "DisplayBody": {
+        "type": "object",
+        "required": ["name", "match"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "match": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": ["kind", "key", "value"],
+                "properties": {
+                  "kind": {
+                    "const": "queryParam",
+                    "type": "string"
+                  },
+                  "key": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": ["kind", "value"],
+                "properties": {
+                  "kind": {
+                    "const": "hostname",
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "$id": "#/components/schemas/DisplayBody"
+      },
+      "DisplayList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["id", "name", "match"],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "match": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "required": ["kind", "key", "value"],
+                  "properties": {
+                    "kind": {
+                      "const": "queryParam",
+                      "type": "string"
+                    },
+                    "key": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": ["kind", "value"],
+                  "properties": {
+                    "kind": {
+                      "const": "hostname",
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "$id": "#/components/schemas/Display"
+        },
+        "$id": "#/components/schemas/DisplayList"
+      },
+      "Overview": {
+        "type": "object",
+        "required": ["issues", "displays", "grid"],
+        "properties": {
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["severity", "kind", "message"],
+              "properties": {
+                "severity": {
+                  "type": "string",
+                  "enum": ["warn", "fail"]
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": ["blank-frame", "no-display-match", "display-offline"]
+                },
+                "tabId": {
+                  "type": "string"
+                },
+                "displayId": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "displays": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name",
+                "online",
+                "currentTabId",
+                "currentTabTitle",
+                "frameState",
+                "uptimeSeconds",
+                "progressPercent"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "online": {
+                  "type": "boolean"
+                },
+                "currentTabId": {
+                  "nullable": true,
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "currentTabTitle": {
+                  "nullable": true,
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "frameState": {
+                  "nullable": true,
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "const": "ok",
+                          "type": "string"
+                        },
+                        {
+                          "const": "error",
+                          "type": "string"
+                        },
+                        {
+                          "const": "timeout",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "uptimeSeconds": {
+                  "nullable": true,
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "progressPercent": {
+                  "nullable": true,
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "grid": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["tabId", "cells"],
+              "properties": {
+                "tabId": {
+                  "type": "string"
+                },
+                "cells": {
+                  "type": "object",
+                  "patternProperties": {
+                    "^(.*)$": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "$id": "#/components/schemas/Overview"
+      },
+      "ProxyFrames": {
+        "type": "object",
+        "required": ["enabled", "frames"],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "frames": {
+            "type": "object",
+            "patternProperties": {
+              "^(.*)$": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "$id": "#/components/schemas/ProxyFrames"
+      },
+      "ShowTabBody": {
+        "type": "object",
+        "required": ["tabId", "targets"],
+        "properties": {
+          "tabId": {
+            "type": "string"
+          },
+          "targets": {
+            "anyOf": [
+              {
+                "const": "all",
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["duration", "lock"]
+          },
+          "durationMs": {
+            "type": "number"
+          }
+        },
+        "$id": "#/components/schemas/ShowTabBody"
+      },
+      "ResumeBody": {
+        "type": "object",
+        "required": ["targets"],
+        "properties": {
+          "targets": {
+            "anyOf": [
+              {
+                "const": "all",
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          }
+        },
+        "$id": "#/components/schemas/ResumeBody"
+      },
+      "NotifyBody": {
+        "type": "object",
+        "required": ["message", "targets"],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "dismiss": {
+            "anyOf": [
+              {
+                "const": "manual",
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "required": ["timeoutMs"],
+                "properties": {
+                  "timeoutMs": {
+                    "type": "number"
+                  }
+                }
+              }
+            ]
+          },
+          "targets": {
+            "anyOf": [
+              {
+                "const": "all",
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          }
+        },
+        "$id": "#/components/schemas/NotifyBody"
+      }
+    }
+  }
+}
