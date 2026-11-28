@@ -21,6 +21,11 @@ const sampleConfig: Config = {
   kioskControls: "auto",
   kioskControlsSize: "s",
   dailyReloadTime: null,
+  sendspinUrl: "",
+  nowPlayingPopupCorner: "top-left",
+  audioUnlockPromptEnabled: true,
+  maApiBaseUrl: "",
+  maApiToken: "",
 };
 
 beforeEach(() => {
@@ -53,6 +58,10 @@ describe("update", () => {
       kioskControls: "auto" as const,
       kioskControlsSize: "s" as const,
       dailyReloadTime: null,
+      sendspinUrl: "",
+      nowPlayingPopupCorner: "top-left" as const,
+      audioUnlockPromptEnabled: true as const,
+      maApiBaseUrl: "",
     };
 
     // Act

@@ -26,6 +26,7 @@ Revolveroo is built for a **house full of screens**, not just one: a single orde
 - **Health-aware autoplay** — a tab whose URL is failing is skipped automatically instead of showing a blank frame, with a failure card explaining what's wrong and what happens next
 - **Optional per-tab reverse proxy** — a per-tab toggle routes a stubborn service's iframe through Revolveroo's own bundled Caddy proxy, which strips the `X-Frame-Options`/CSP headers refusing to be framed, instead of leaving "open in a new tab" as the only option. Proxied tabs can also inject request/response headers, cookies, query params and `localStorage` values (e.g. a one-click preset that keeps Home Assistant's sidebar hidden)
 - **Home Assistant integration** — push a toast notification or force a tab onto any (or all) displays from a Home Assistant automation via one REST call, no custom component needed — handy for a camera motion event or doorbell ring interrupting the rotation for a moment
+- **Background audio (Music Assistant)** — point a kiosk at a Music Assistant server's [Sendspin](https://github.com/Sendspin/sendspin-js) endpoint and it becomes a synced speaker, playing audio continuously regardless of which tab is showing, with a small now-playing popup (art, title/artist, play/pause/next) in a configurable screen corner, plus a "Show guest QR" kiosk action that surfaces Music Assistant's Party plugin guest-join link as a scannable QR code
 
 ---
 

@@ -16,6 +16,11 @@ config:
   kioskControls: auto
   kioskControlsSize: s
   dailyReloadTime: null
+  sendspinUrl: ""
+  nowPlayingPopupCorner: top-left
+  audioUnlockPromptEnabled: true
+  maApiBaseUrl: ""
+  maApiToken: ""
 
 displays:
   office:
@@ -34,7 +39,7 @@ windows:
 tabs:
   dashboard:
     title: Dashboard
-    url: http://ha.media.server/tablet-view/weather?kiosk
+    url: http://ha.media.server/tablet-view/weather?kiosk&sidebar=hidden
     inLoop: true
     displays: null
     windows:
@@ -50,15 +55,20 @@ Every field has a default, so you can leave out anything you do not need.
 
 ## `config`
 
-| Field               | Type               | Default     | Notes                                                                                                                                                     |
-| ------------------- | ------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `playbackInterval`  | positive integer   | `5000`      | Milliseconds per tab. The UI slider covers 1 to 20 seconds.                                                                                               |
-| `autoplayEnabled`   | boolean            | `true`      |                                                                                                                                                           |
-| `theme`             | enum               | `mocha`     | `mocha`, `macchiato`, `frappe`, `latte`, `rose-pine`, `rose-pine-dawn`, `tokyo-night`, `tokyo-night-day`, `kanagawa`, `kanagawa-lotus`, `nord`, `dracula` |
-| `tabTransition`     | enum               | `crossfade` | `none`, `crossfade`, `slide`                                                                                                                              |
-| `kioskControls`     | enum               | `auto`      | `auto`, `slim`, `expanded`                                                                                                                                |
-| `kioskControlsSize` | enum               | `s`         | `s`, `m`, `l`                                                                                                                                             |
-| `dailyReloadTime`   | `HH:MM`, or `null` | `null`      | 24-hour, the kiosk's local clock. Every kiosk does a full page reload at this time, skipped if the server is unreachable then.                            |
+| Field                      | Type               | Default     | Notes                                                                                                                                                                                                        |
+| -------------------------- | ------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `playbackInterval`         | positive integer   | `5000`      | Milliseconds per tab. The UI slider covers 1 to 20 seconds.                                                                                                                                                  |
+| `autoplayEnabled`          | boolean            | `true`      |                                                                                                                                                                                                              |
+| `theme`                    | enum               | `mocha`     | `mocha`, `macchiato`, `frappe`, `latte`, `rose-pine`, `rose-pine-dawn`, `tokyo-night`, `tokyo-night-day`, `kanagawa`, `kanagawa-lotus`, `nord`, `dracula`                                                    |
+| `tabTransition`            | enum               | `crossfade` | `none`, `crossfade`, `slide`                                                                                                                                                                                 |
+| `kioskControls`            | enum               | `auto`      | `auto`, `slim`, `expanded`                                                                                                                                                                                   |
+| `kioskControlsSize`        | enum               | `s`         | `s`, `m`, `l`                                                                                                                                                                                                |
+| `dailyReloadTime`          | `HH:MM`, or `null` | `null`      | 24-hour, the kiosk's local clock. Every kiosk does a full page reload at this time, skipped if the server is unreachable then.                                                                               |
+| `sendspinUrl`              | string             | `""`        | WebSocket URL of a Music Assistant Sendspin server, e.g. `ws://192.168.1.50:8927/sendspin`. Empty disables the background audio player. Changing it only takes effect after the kiosk reloads.               |
+| `nowPlayingPopupCorner`    | enum               | `top-left`  | `top-left`, `top-right`, `bottom-left`, `bottom-right`. Corner where the now-playing popup appears while Sendspin audio is playing.                                                                          |
+| `audioUnlockPromptEnabled` | boolean            | `true`      | Shows a "tap to enable audio" prompt when the browser's autoplay policy blocks Sendspin playback until a user gesture unlocks it. Turn off to hide the reminder entirely.                                    |
+| `maApiBaseUrl`             | string             | `""`        | HTTP base URL of a Music Assistant server's RPC API (e.g. `http://192.168.1.50:8095`), used to fetch the Party plugin's guest join URL. Distinct from `sendspinUrl`'s WebSocket host:port.                   |
+| `maApiToken`               | string             | `""`        | Bearer token for the above API. Hand-editable here like any other field, but deliberately never returned by `GET`/`PUT /config` — set it via Settings' "Save token" action or by editing this file directly. |
 
 ## `displays`
 

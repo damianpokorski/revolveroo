@@ -74,6 +74,11 @@ describe("load", () => {
       kioskControls: "auto",
       kioskControlsSize: "s",
       dailyReloadTime: null,
+      sendspinUrl: "",
+      nowPlayingPopupCorner: "top-left",
+      audioUnlockPromptEnabled: true,
+      maApiBaseUrl: "",
+      maApiToken: "",
     });
     const written = await readFile(filePath, "utf8");
     expect(written).toContain("dashboard");

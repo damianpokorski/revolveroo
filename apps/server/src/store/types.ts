@@ -25,6 +25,9 @@ export type KioskControls = (typeof KIOSK_CONTROLS)[number];
 export const KIOSK_CONTROLS_SIZES = ["s", "m", "l"] as const;
 export type KioskControlsSize = (typeof KIOSK_CONTROLS_SIZES)[number];
 
+export const POPUP_CORNERS = ["top-left", "top-right", "bottom-left", "bottom-right"] as const;
+export type PopupCorner = (typeof POPUP_CORNERS)[number];
+
 export type DisplayMatch =
   | { kind: "queryParam"; key: string; value: string }
   | { kind: "hostname"; value: string };
@@ -78,4 +81,19 @@ export interface Config {
   kioskControlsSize: KioskControlsSize;
   // Local "HH:MM" at which every kiosk does a full page reload; null disables it.
   dailyReloadTime: string | null;
+  // Sendspin WebSocket URL for a Music Assistant server (e.g. "ws://host:8927/sendspin");
+  // empty string disables the background audio player. Takes effect on next kiosk reload.
+  sendspinUrl: string;
+  nowPlayingPopupCorner: PopupCorner;
+  // Whether to show a "tap to enable audio" prompt when the browser's autoplay
+  // policy blocks the Sendspin player until a user gesture unlocks it.
+  audioUnlockPromptEnabled: boolean;
+  // HTTP base URL of a Music Assistant server's RPC API (e.g. "http://host:8095"),
+  // used to fetch the Party plugin's guest join URL. Distinct from sendspinUrl's
+  // WebSocket host:port.
+  maApiBaseUrl: string;
+  // Bearer token for the above API. Deliberately excluded from ConfigModel in
+  // controllers/config.ts — never returned by GET/PUT /config — and only ever
+  // written via PUT /music-assistant/token.
+  maApiToken: string;
 }

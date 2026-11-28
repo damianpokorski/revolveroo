@@ -9,13 +9,18 @@ import {
 	type WindowData,
 } from "$lib/api";
 import Icon from "$lib/icons/Icon.svelte";
+import { DEFAULT_POPUP_CORNER, type PopupCorner } from "$lib/popupCorner";
 import { iframeSrc, NO_PROXY_FRAMES, type ProxyFrames } from "$lib/proxy";
 import { nextDailyOccurrence, safeReload } from "$lib/reload";
+import { initSendspin } from "$lib/sendspinPlayer.svelte";
 import { DEFAULT_TAB_TRANSITION, type TabTransition } from "$lib/tabTransition";
 import { applyTheme } from "$lib/theme";
 import { pushToast } from "$lib/toast.svelte";
 import { resolveDisplay, visible } from "$lib/visibility";
+import AudioUnlockPrompt from "../components/AudioUnlockPrompt.svelte";
+import GuestQrModal from "../components/GuestQrModal.svelte";
 import NotificationStack from "../components/NotificationStack.svelte";
+import NowPlayingPopup from "../components/NowPlayingPopup.svelte";
 import Toast from "../components/Toast.svelte";
 
 const api = createApi();
@@ -49,6 +54,10 @@ let tabTransition = $state<TabTransition>(DEFAULT_TAB_TRANSITION);
 let kioskControls = $state<"auto" | "slim" | "expanded">("auto");
 let kioskControlsSize = $state<"s" | "m" | "l">("s");
 let dailyReloadTime = $state<string | null>(null);
+let sendspinUrl = $state("");
+let nowPlayingPopupCorner = $state<PopupCorner>(DEFAULT_POPUP_CORNER);
+let audioUnlockPromptEnabled = $state(true);
+let guestQrAvailable = $state(false);
 
 async function refreshData() {
 	const [
@@ -58,6 +67,7 @@ async function refreshData() {
 		displaysResult,
 		healthResult,
 		framesResult,
+		musicAssistantStatusResult,
 	] = await Promise.all([
 		api.api.tabs.get(),
 		api.api.config.get(),
@@ -65,6 +75,7 @@ async function refreshData() {
 		api.api.displays.get(),
 		api.api.tabs.health.get(),
 		api.api.proxy.frames.get(),
+		api.api["music-assistant"].status.get(),
 	]);
 
 	if (tabsResult.error) {
@@ -101,9 +112,26 @@ async function refreshData() {
 		kioskControls = configResult.data.kioskControls;
 		kioskControlsSize = configResult.data.kioskControlsSize;
 		dailyReloadTime = configResult.data.dailyReloadTime;
+		sendspinUrl = configResult.data.sendspinUrl;
+		nowPlayingPopupCorner = configResult.data.nowPlayingPopupCorner;
+		audioUnlockPromptEnabled = configResult.data.audioUnlockPromptEnabled;
+	}
+	if (!musicAssistantStatusResult.error) {
+		guestQrAvailable = musicAssistantStatusResult.data.configured;
 	}
 }
 onMount(refreshData);
+
+// Always-on background audio connection, independent of which tab is
+// rotating — initSendspin() is idempotent (runs once per session) so this
+// effect re-firing on every refreshData() poll is harmless.
+$effect(() => {
+	if (sendspinUrl)
+		initSendspin(
+			sendspinUrl,
+			resolvedDisplay?.name ?? window.location.hostname,
+		);
+});
 
 // Fallback poll: the SSE "change" listener below only re-fetches when data
 // actually changes, so an idle-but-healthy server would never refresh
@@ -182,6 +210,7 @@ onMount(() => {
 
 // --- UI state ---
 let menu = $state(false);
+let showGuestQr = $state(false);
 let autoplayRunning = $state(true);
 let tapPaused = $state(false);
 let activeTabIndex = $state(0);
@@ -713,6 +742,11 @@ $effect(() => {
 <div class="wrapper" data-transition={tabTransition}>
 	<Toast />
 	<NotificationStack {notifications} ondismiss={dismissNotification} />
+	<NowPlayingPopup corner={nowPlayingPopupCorner} />
+	<AudioUnlockPrompt enabled={audioUnlockPromptEnabled} />
+	{#if showGuestQr}
+		<GuestQrModal onclose={() => (showGuestQr = false)} />
+	{/if}
 	{#if bannerState}
 		<div class="banner banner-{bannerState}" data-testid="system-banner">{BANNER_COPY[bannerState]}</div>
 	{/if}
@@ -811,6 +845,9 @@ $effect(() => {
 					{/if}
 					<button class="menu-row" data-testid="hud-reload" onclick={reloadActiveTab}>Reload this tab</button>
 					<button class="menu-row" data-testid="hud-dim" onclick={() => (dimmed = true)}>Dim display now</button>
+					{#if guestQrAvailable}
+						<button class="menu-row" data-testid="hud-guest-qr" onclick={() => { showGuestQr = true; menu = false; }}>Show guest QR</button>
+					{/if}
 					<a class="menu-row" href="/settings" data-testid="hud-settings-link">Settings</a>
 				</div>
 			{/if}

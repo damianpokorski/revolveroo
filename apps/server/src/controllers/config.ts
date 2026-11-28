@@ -23,6 +23,17 @@ const ConfigModel = t.Object({
   kioskControls: t.Union([t.Literal("auto"), t.Literal("slim"), t.Literal("expanded")]),
   kioskControlsSize: t.Union([t.Literal("s"), t.Literal("m"), t.Literal("l")]),
   dailyReloadTime: t.Nullable(t.String({ pattern: "^([01]\\d|2[0-3]):[0-5]\\d$" })),
+  sendspinUrl: t.String(),
+  nowPlayingPopupCorner: t.Union([
+    t.Literal("top-left"),
+    t.Literal("top-right"),
+    t.Literal("bottom-left"),
+    t.Literal("bottom-right"),
+  ]),
+  audioUnlockPromptEnabled: t.Boolean(),
+  // maApiToken is deliberately NOT declared here — it must never round-trip
+  // through GET/PUT /config. See MusicAssistantService/controllers/musicAssistant.ts.
+  maApiBaseUrl: t.String(),
 });
 
 const service = new ConfigService(new ConfigRepository());

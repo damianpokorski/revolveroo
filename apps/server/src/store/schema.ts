@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { INJECTION_KINDS, injectionError } from "../injection";
-import { KIOSK_CONTROLS, KIOSK_CONTROLS_SIZES, TAB_TRANSITIONS, THEMES } from "./types";
+import {
+  KIOSK_CONTROLS,
+  KIOSK_CONTROLS_SIZES,
+  POPUP_CORNERS,
+  TAB_TRANSITIONS,
+  THEMES,
+} from "./types";
 
 // File-content validation for the YAML data file — distinct from the route-level
 // TypeBox schemas in controllers/*.ts. This validates whatever a human (or the app
@@ -78,4 +84,9 @@ export const ConfigSchema = z.object({
   kioskControls: z.enum(KIOSK_CONTROLS).default("auto"),
   kioskControlsSize: z.enum(KIOSK_CONTROLS_SIZES).default("s"),
   dailyReloadTime: z.string().regex(TIME_PATTERN).nullable().default(null),
+  sendspinUrl: z.string().default(""),
+  nowPlayingPopupCorner: z.enum(POPUP_CORNERS).default("top-left"),
+  audioUnlockPromptEnabled: z.boolean().default(true),
+  maApiBaseUrl: z.string().default(""),
+  maApiToken: z.string().default(""),
 });

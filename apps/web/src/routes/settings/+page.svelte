@@ -13,6 +13,7 @@ import {
 } from "$lib/api";
 import { markSaved, markSaving } from "$lib/autosaveStatus.svelte";
 import Icon from "$lib/icons/Icon.svelte";
+import { POPUP_CORNER_LABELS, POPUP_CORNERS } from "$lib/popupCorner";
 import { TAB_TRANSITION_LABELS, TAB_TRANSITIONS } from "$lib/tabTransition";
 import {
 	applyTheme,
@@ -44,6 +45,12 @@ let windows = $state<WindowData[]>([]);
 let config = $state<ConfigData | null>(null);
 let proxyEnabled = $state(false);
 let loaded = $state(false);
+
+// Never prefilled from `config` — GET /config deliberately never returns the
+// real token (see apps/server's controllers/config.ts), so there's nothing to
+// show here. Saved via its own dedicated endpoint, not the general autosave.
+let maApiToken = $state("");
+let maApiTokenVisible = $state(false);
 
 let addingTab = $state(false);
 let editingTabId = $state<string | null>(null);
@@ -295,6 +302,20 @@ function scheduleConfigSave() {
 		}
 		markSaved();
 	}, 600);
+}
+
+async function saveMaApiToken() {
+	if (!maApiToken.trim()) return;
+	markSaving();
+	const { error } = await api.api["music-assistant"].token.put({
+		token: maApiToken,
+	});
+	if (error) {
+		console.error("Failed to save Music Assistant API token", error);
+		return;
+	}
+	markSaved();
+	maApiToken = "";
 }
 </script>
 
@@ -636,6 +657,112 @@ function scheduleConfigSave() {
 					</div>
 				</div>
 			</section>
+
+			<!-- Music Assistant -->
+			<section>
+				<h2 class="rv-section-label">Music Assistant</h2>
+				<div class="rv-card playback-fields">
+					<label>
+						<span class="rv-section-label">Server URL</span>
+						<input
+							class="rv-input"
+							type="text"
+							placeholder="ws://192.168.1.50:8927/sendspin"
+							data-testid="sendspin-url-input"
+							value={config.sendspinUrl}
+							onchange={(e) => {
+								if (config) config.sendspinUrl = e.currentTarget.value;
+								scheduleConfigSave();
+							}}
+						/>
+						<span class="rv-field-error" style="color: var(--rv-text-dim);">
+							Background audio connection — takes effect after the kiosk reloads.
+						</span>
+					</label>
+					<label>
+						<span class="rv-section-label">Now-playing popup corner</span>
+						<div class="corner-grid" data-testid="popup-corner-grid">
+							{#each POPUP_CORNERS as c (c)}
+								<button
+									type="button"
+									class="rv-btn rv-btn-secondary"
+									class:active={config.nowPlayingPopupCorner === c}
+									data-testid="popup-corner-{c}"
+									onclick={() => {
+										if (config) config.nowPlayingPopupCorner = c;
+										scheduleConfigSave();
+									}}
+								>
+									{POPUP_CORNER_LABELS[c]}
+								</button>
+							{/each}
+						</div>
+					</label>
+					<label class="inline-checkbox">
+						<input
+							class="rv-checkbox"
+							type="checkbox"
+							data-testid="audio-unlock-prompt-enabled-checkbox"
+							checked={config.audioUnlockPromptEnabled}
+							onchange={(e) => {
+								if (config) config.audioUnlockPromptEnabled = e.currentTarget.checked;
+								scheduleConfigSave();
+							}}
+						/>
+						Show "tap to enable audio" reminder
+					</label>
+					<label>
+						<span class="rv-section-label">Guest access — API base URL</span>
+						<input
+							class="rv-input"
+							type="text"
+							placeholder="http://192.168.1.50:8095"
+							data-testid="ma-api-base-url-input"
+							value={config.maApiBaseUrl}
+							onchange={(e) => {
+								if (config) config.maApiBaseUrl = e.currentTarget.value;
+								scheduleConfigSave();
+							}}
+						/>
+						<span class="rv-field-error" style="color: var(--rv-text-dim);">
+							Used for the "Show guest QR" kiosk action (Party plugin).
+						</span>
+					</label>
+					<label>
+						<span class="rv-section-label">Guest access — API token</span>
+						<div class="token-row">
+							<input
+								class="rv-input rv-mono"
+								type={maApiTokenVisible ? "text" : "password"}
+								placeholder="Bearer token"
+								data-testid="ma-api-token-input"
+								bind:value={maApiToken}
+							/>
+							<button
+								type="button"
+								class="rv-btn rv-btn-secondary rv-btn-icon"
+								data-testid="ma-api-token-toggle-visibility"
+								aria-label={maApiTokenVisible ? "Hide token" : "Show token"}
+								onclick={() => (maApiTokenVisible = !maApiTokenVisible)}
+							>
+								<Icon name={maApiTokenVisible ? "eye-off" : "eye"} size={14} />
+							</button>
+							<button
+								type="button"
+								class="rv-btn rv-btn-secondary"
+								data-testid="ma-api-token-save"
+								disabled={!maApiToken.trim()}
+								onclick={saveMaApiToken}
+							>
+								Save token
+							</button>
+						</div>
+						<span class="rv-field-error" style="color: var(--rv-text-dim);">
+							Write-only — leave blank to keep the existing token saved on the server.
+						</span>
+					</label>
+				</div>
+			</section>
 		{/if}
 	{/if}
 </div>
@@ -871,5 +998,27 @@ function scheduleConfigSave() {
 		background: var(--rv-accent);
 		border-color: var(--rv-accent);
 		color: var(--rv-accent-ink);
+	}
+
+	.corner-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.3rem;
+		margin-top: 0.3rem;
+		max-width: 280px;
+	}
+	.corner-grid button.active {
+		background: var(--rv-accent);
+		border-color: var(--rv-accent);
+		color: var(--rv-accent-ink);
+	}
+
+	.token-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.token-row .rv-input {
+		flex: 1;
 	}
 </style>

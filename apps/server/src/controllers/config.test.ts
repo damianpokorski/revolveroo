@@ -18,6 +18,9 @@ mock.module("../db/ConfigRepository", () => ({
 
 const { configController } = await import("./config");
 
+// maApiToken is set here to simulate the real service/repository returning the
+// full stored Config — the GET/PUT tests below assert it never reaches the
+// HTTP response, which is the whole point of excluding it from ConfigModel.
 const sampleConfig = {
   playbackInterval: 15,
   autoplayEnabled: true,
@@ -26,7 +29,13 @@ const sampleConfig = {
   kioskControls: "auto",
   kioskControlsSize: "s",
   dailyReloadTime: null,
+  sendspinUrl: "",
+  nowPlayingPopupCorner: "top-left",
+  audioUnlockPromptEnabled: true,
+  maApiBaseUrl: "http://ma.local:8095",
+  maApiToken: "super-secret-token",
 };
+const { maApiToken: _sampleToken, ...sampleConfigResponse } = sampleConfig;
 
 beforeEach(() => {
   for (const m of allServiceMocks) m.mockReset();
@@ -39,11 +48,27 @@ describe("GET /config", () => {
 
     // Act
     const response = await configController.handle(new Request("http://localhost/config"));
-    const body = await response.json();
+    const body = (await response.json()) as Record<string, unknown>;
 
     // Assert
     expect(response.status).toBe(200);
-    expect(body).toEqual(sampleConfig);
+    expect(body).toEqual(sampleConfigResponse);
+    expect(body.maApiToken).toBeUndefined();
+  });
+
+  test("never includes maApiToken in the response, even if the service returns it", async () => {
+    // Arrange — maApiToken must stay server-side only (see MusicAssistantService);
+    // ConfigModel deliberately omits it, so Elysia's response-schema stripping
+    // should remove it here regardless of what the (mocked) service resolves with.
+    getMock.mockResolvedValue(sampleConfig);
+
+    // Act
+    const response = await configController.handle(new Request("http://localhost/config"));
+    const body = (await response.json()) as Record<string, unknown>;
+
+    // Assert
+    expect(response.status).toBe(200);
+    expect("maApiToken" in body).toBe(false);
   });
 });
 
@@ -59,6 +84,10 @@ describe("PUT /config", () => {
       kioskControls: "auto",
       kioskControlsSize: "s",
       dailyReloadTime: null,
+      sendspinUrl: "",
+      nowPlayingPopupCorner: "top-left",
+      audioUnlockPromptEnabled: true,
+      maApiBaseUrl: "http://ma.local:8095",
     };
 
     // Act
@@ -69,16 +98,18 @@ describe("PUT /config", () => {
         body: JSON.stringify(requestBody),
       }),
     );
-    const body = await response.json();
+    const body = (await response.json()) as Record<string, unknown>;
 
     // Assert
     expect(response.status).toBe(200);
-    expect(body).toEqual(sampleConfig);
+    expect(body).toEqual(sampleConfigResponse);
+    expect(body.maApiToken).toBeUndefined();
     expect(updateMock).toHaveBeenCalledWith(requestBody);
   });
 
   test("round-trips autoplayEnabled: false through the service", async () => {
     // Arrange
+    // maApiToken is set here too, same reasoning as sampleConfig above.
     const disabledConfig = {
       playbackInterval: 15,
       autoplayEnabled: false,
@@ -87,7 +118,13 @@ describe("PUT /config", () => {
       kioskControls: "auto",
       kioskControlsSize: "s",
       dailyReloadTime: null,
+      sendspinUrl: "",
+      nowPlayingPopupCorner: "top-left",
+      audioUnlockPromptEnabled: true,
+      maApiBaseUrl: "http://ma.local:8095",
+      maApiToken: "super-secret-token",
     };
+    const { maApiToken: _disabledToken, ...disabledConfigResponse } = disabledConfig;
     updateMock.mockResolvedValue(disabledConfig);
     const requestBody = {
       playbackInterval: 15,
@@ -97,6 +134,10 @@ describe("PUT /config", () => {
       kioskControls: "auto",
       kioskControlsSize: "s",
       dailyReloadTime: null,
+      sendspinUrl: "",
+      nowPlayingPopupCorner: "top-left",
+      audioUnlockPromptEnabled: true,
+      maApiBaseUrl: "http://ma.local:8095",
     };
 
     // Act
@@ -107,11 +148,12 @@ describe("PUT /config", () => {
         body: JSON.stringify(requestBody),
       }),
     );
-    const body = await response.json();
+    const body = (await response.json()) as Record<string, unknown>;
 
     // Assert
     expect(response.status).toBe(200);
-    expect(body).toEqual(disabledConfig);
+    expect(body).toEqual(disabledConfigResponse);
+    expect(body.maApiToken).toBeUndefined();
     expect(updateMock).toHaveBeenCalledWith(requestBody);
   });
 

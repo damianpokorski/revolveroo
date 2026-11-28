@@ -8,6 +8,11 @@ export const DEFAULT_CONFIG: Config = {
   kioskControls: "auto",
   kioskControlsSize: "s",
   dailyReloadTime: null,
+  sendspinUrl: "",
+  nowPlayingPopupCorner: "top-left",
+  audioUnlockPromptEnabled: true,
+  maApiBaseUrl: "",
+  maApiToken: "",
 };
 
 export const DEFAULT_DISPLAYS: Display[] = [
@@ -33,7 +38,7 @@ export const DEFAULT_TABS: Tab[] = [
   {
     id: "dashboard",
     title: "Dashboard",
-    url: "http://ha.media.server/tablet-view/weather?kiosk",
+    url: "http://ha.media.server/tablet-view/weather?kiosk&sidebar=hidden",
     inLoop: true,
     displays: null,
     windows: null,
@@ -46,7 +51,7 @@ export const DEFAULT_TABS: Tab[] = [
   {
     id: "heating",
     title: "Heating",
-    url: "http://ha.media.server/tablet-view/Heating?kiosk",
+    url: "http://ha.media.server/tablet-view/Heating?kiosk&sidebar=hidden",
     inLoop: true,
     displays: null,
     windows: null,
@@ -59,7 +64,7 @@ export const DEFAULT_TABS: Tab[] = [
   {
     id: "front-door-camera",
     title: "Front Door camera",
-    url: "http://ha.media.server/tablet-view/front-door?kiosk",
+    url: "http://ha.media.server/tablet-view/front-door?kiosk&sidebar=hidden",
     inLoop: true,
     displays: null,
     windows: null,
@@ -85,7 +90,7 @@ export const DEFAULT_TABS: Tab[] = [
   {
     id: "office-lights",
     title: "Office lights",
-    url: "http://ha.media.server/tablet-view/office-lights?kiosk",
+    url: "http://ha.media.server/tablet-view/office-lights?kiosk&sidebar=hidden",
     inLoop: true,
     displays: ["office"],
     windows: null,
@@ -98,7 +103,7 @@ export const DEFAULT_TABS: Tab[] = [
   {
     id: "trello",
     title: "Trello",
-    url: "http://ha.media.server/tablet-view/trello?kiosk",
+    url: "http://ha.media.server/tablet-view/trello?kiosk&sidebar=hidden",
     inLoop: false,
     displays: null,
     windows: null,
@@ -111,7 +116,7 @@ export const DEFAULT_TABS: Tab[] = [
   {
     id: "fitbit",
     title: "Fitbit",
-    url: "http://ha.media.server/tablet-view/fitbit?kiosk",
+    url: "http://ha.media.server/tablet-view/fitbit?kiosk&sidebar=hidden",
     inLoop: false,
     displays: null,
     windows: null,
@@ -124,7 +129,7 @@ export const DEFAULT_TABS: Tab[] = [
   {
     id: "lights",
     title: "Lights",
-    url: "http://ha.media.server/tablet-view/lights?kiosk",
+    url: "http://ha.media.server/tablet-view/lights?kiosk&sidebar=hidden",
     inLoop: false,
     displays: null,
     windows: null,

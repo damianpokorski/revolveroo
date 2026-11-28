@@ -6,6 +6,7 @@ import { commandsController } from "./controllers/commands";
 import { configController } from "./controllers/config";
 import { displaysController } from "./controllers/displays";
 import { eventsController } from "./controllers/events";
+import { musicAssistantController } from "./controllers/musicAssistant";
 import { notificationsController } from "./controllers/notifications";
 import { overviewController } from "./controllers/overview";
 import { proxyController } from "./controllers/proxy";
@@ -62,4 +63,5 @@ export const router = new Elysia({ prefix: "/api" })
   .use(proxyController)
   .use(eventsController)
   .use(commandsController)
-  .use(notificationsController);
+  .use(notificationsController)
+  .use(musicAssistantController);
