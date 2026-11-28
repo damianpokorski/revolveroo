@@ -68,6 +68,39 @@ tabs:
 
 Home Assistant stores the value JSON-encoded, which is why it keeps its own quotes.
 
+### Hiding the sidebar without the proxy
+
+The injection above needs **Route through proxy** turned on. If you'd rather not set up the proxy at all, there's a lighter alternative: a small script, added as a Home Assistant Lovelace resource, that reads a `sidebar` query parameter straight off the tab's URL and sets the same preference Home Assistant already stores:
+
+```js
+(() => {
+  const p = new URLSearchParams(location.search).get("sidebar");
+  const map = { hidden: "always_hidden", docked: "docked", auto: "auto" };
+  if (!map[p]) return;
+  const val = JSON.stringify(map[p]);
+  if (localStorage.getItem("dockedSidebar") !== val) {
+    localStorage.setItem("dockedSidebar", val);
+    location.reload();
+  }
+})();
+```
+
+Save it inside Home Assistant's `www/` folder (for example `www/sidebar-param.js`, served at `/local/sidebar-param.js`), then register it as a resource — either in **Settings → Dashboards → Resources** (type **JavaScript Module**), or via `configuration.yaml`:
+
+```yaml
+frontend:
+  extra_module_url:
+    - /local/sidebar-param.js
+```
+
+Then add `?sidebar=hidden` (or `docked`, `auto`) to the tab's URL:
+
+```
+http://ha.media.server:8123/lovelace/0?sidebar=hidden
+```
+
+It only reloads once, the first time the URL disagrees with what's already stored — not on every load once they match. Unlike the `localStorage` injection above, this works directly against Home Assistant's real URL with no proxy involved, and since the preference comes from the URL itself, different tabs can request different sidebar states without needing a separate injected value per tab.
+
 Cookie and `localStorage` rows work through a small page Revolveroo serves at `/__revolveroo/seed` on the tab's own address. It writes the values, then sends the frame on to the tab's URL. Some details:
 
 - A cookie is set with `Path=/` unless its value names a path. You can add attributes to the value, for example `abc; HttpOnly`.
